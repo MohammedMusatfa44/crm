@@ -2,55 +2,662 @@
 
 @section('title', 'إدارة العملاء')
 
+@section('styles')
+<style>
+    .dashboard-bg {
+        background: #f8f9fa;
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+    .dashboard-title {
+        font-size: 2.1rem;
+        font-weight: 700;
+        color: #222;
+        margin-bottom: 0.2rem;
+    }
+    .dashboard-subtitle {
+        color: #888;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+    .top-actions {
+        display: flex;
+        gap: 0.7rem;
+        justify-content: flex-end;
+        margin-bottom: 1.2rem;
+        flex-wrap: wrap;
+    }
+    .top-actions .btn {
+        border-radius: 1.2rem;
+        font-weight: 500;
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+        color: #fff;
+        border: none;
+        border-radius: 1.2rem;
+        box-shadow: 0 4px 24px rgba(33,150,243,0.10);
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 1.2rem 1.5rem;
+    }
+    .stat-card .stat-label {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+        opacity: 0.9;
+    }
+    .stat-card .stat-value {
+        font-size: 2.2rem;
+        font-weight: bold;
+        opacity: 0.95;
+    }
+    .stat-card.no-answer {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+    }
+    .stat-card.hot {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+    }
+    .stat-card.western {
+        background: linear-gradient(135deg, #ffa726 0%, #ffcc02 100%);
+    }
+    .stat-card.follow {
+        background: linear-gradient(135deg, #7e57c2 0%, #9c27b0 100%);
+    }
+    .stat-card.deposits {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+    }
+    .stat-card.not-interested {
+        background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+    }
+    .stat-card.no-answer2 {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+    }
+    .stat-card.no-answer1 {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+    }
+    .modern-table {
+        background: #fff;
+        border-radius: 1.2rem;
+        box-shadow: 0 2px 12px rgba(33,150,243,0.08);
+        overflow: hidden;
+    }
+    .table-header {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+        color: #fff;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .table-responsive {
+        border-radius: 1.2rem;
+    }
+    .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table th {
+        background: #f8f9fa;
+        border: none;
+        font-weight: 600;
+        color: #555;
+        padding: 1.2rem 1rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .table td {
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1.2rem 1rem;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #333;
+    }
+    .table tbody tr {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .table tbody tr:hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .table tbody tr:nth-child(even) {
+        background: #fafbfc;
+    }
+    .table tbody tr:nth-child(even):hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .btn-action {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        margin: 0 0.2rem;
+        border-radius: 0.8rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .customer-sidebar {
+        background: #fff;
+        border-radius: 1.2rem;
+        box-shadow: 0 2px 12px rgba(33,150,243,0.08);
+        overflow: hidden;
+    }
+    .sidebar-header {
+        background: linear-gradient(135deg, #4f5bd5 0%, #5f8fff 100%);
+        color: #fff;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    .sidebar-body {
+        padding: 1.5rem;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    .info-label {
+        font-weight: 500;
+        color: #666;
+    }
+    .info-value {
+        color: #222;
+    }
+
+    /* DataTables Custom Styling */
+    .dataTables_wrapper {
+        padding: 1.5rem;
+    }
+    .dataTables_length {
+        margin-bottom: 1rem;
+    }
+    .dataTables_length select {
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        background: #fff;
+        font-weight: 500;
+    }
+    .dataTables_filter {
+        margin-bottom: 1rem;
+    }
+    .dataTables_filter input {
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #fff;
+        font-weight: 500;
+        width: 250px;
+        transition: all 0.2s ease;
+    }
+    .dataTables_filter input:focus {
+        border-color: #4f5bd5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 91, 213, 0.25);
+        outline: none;
+    }
+    .dataTables_info {
+        margin-top: 1rem;
+        font-weight: 500;
+        color: #666;
+    }
+    .dataTables_paginate {
+        margin-top: 1rem;
+    }
+    .dataTables_paginate .paginate_button {
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        margin: 0 0.2rem;
+        background: #fff;
+        color: #333;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .dataTables_paginate .paginate_button:hover {
+        background: #4f5bd5;
+        color: #fff;
+        border-color: #4f5bd5;
+    }
+    .dataTables_paginate .paginate_button.current {
+        background: #4f5bd5;
+        color: #fff;
+        border-color: #4f5bd5;
+    }
+    .dataTables_paginate .paginate_button.disabled {
+        color: #ccc;
+        cursor: not-allowed;
+    }
+
+    /* Table Row Highlighting */
+    .table tbody tr.selected {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-left: 4px solid #4f5bd5;
+    }
+
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+        .dataTables_filter input {
+            width: 100%;
+        }
+        .table th, .table td {
+            padding: 0.8rem 0.5rem;
+            font-size: 0.85rem;
+        }
+        .btn-action {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+        }
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+        .dashboard-subtitle {
+            font-size: 1rem;
+        }
+        .top-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .top-actions .btn {
+            width: 100%;
+            font-size: 0.85rem;
+            padding: 0.6rem 1rem;
+        }
+        .stat-card {
+            min-height: 90px;
+            padding: 1rem;
+        }
+        .stat-card .stat-label {
+            font-size: 1rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+        }
+        .modern-table {
+            margin: 0 -0.5rem;
+        }
+        .table-responsive {
+            border-radius: 0;
+        }
+        .table-header {
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+        }
+        .dataTables_wrapper {
+            padding: 1rem;
+        }
+        .dataTables_length, .dataTables_filter {
+            margin-bottom: 0.8rem;
+        }
+        .dataTables_info, .dataTables_paginate {
+            margin-top: 0.8rem;
+        }
+        .dataTables_paginate .paginate_button {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+        .customer-sidebar {
+            margin-top: 1rem;
+        }
+        .sidebar-header {
+            padding: 0.8rem 1rem;
+        }
+        .sidebar-body {
+            padding: 1rem;
+        }
+        .info-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3rem;
+        }
+        .info-label {
+            font-weight: 600;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .dashboard-bg {
+            padding: 1rem 0;
+        }
+        .dashboard-header-card {
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .stat-card {
+            min-height: 80px;
+            padding: 0.8rem;
+        }
+        .stat-card .stat-label {
+            font-size: 0.9rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+        }
+        .table th, .table td {
+            padding: 0.6rem 0.3rem;
+            font-size: 0.8rem;
+        }
+        .btn-action {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            margin: 0.1rem;
+        }
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+        }
+        .dataTables_wrapper {
+            padding: 0.8rem;
+        }
+        .dataTables_filter input {
+            font-size: 0.9rem;
+        }
+        .dataTables_length select {
+            font-size: 0.9rem;
+        }
+        .top-actions .btn {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.8rem;
+        }
+        .top-actions .btn i {
+            margin-right: 0.3rem;
+        }
+    }
+
+    /* Hide some columns on mobile */
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table {
+            min-width: 600px;
+        }
+    }
+
+    /* Improve sidebar responsiveness */
+    @media (max-width: 992px) {
+        #sidebarContainer .col-md-9 {
+            margin-bottom: 1rem;
+        }
+        .customer-sidebar {
+            position: sticky;
+            top: 1rem;
+        }
+    }
+</style>
+@endsection
+
 @section('content')
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>العملاء</h4>
-        <div>
-            <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#importModal">رفع إكسل</button>
-            <button class="btn btn-outline-success me-2">استخراج البيانات</button>
-            <button class="btn btn-outline-warning me-2">تغيير الحالة</button>
-            <button class="btn btn-outline-info me-2">تخصيص للموظفين</button>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">إضافة عميل</button>
+<div class="dashboard-bg">
+    <div class="container-fluid">
+        <div class="row mb-2 col-12 w-100">
+            <div class="col-12 w-100">
+                <div class="dashboard-header-card" style="background:#fff; border-radius:1.2rem; box-shadow:0 2px 12px rgba(33,150,243,0.07); padding:1.5rem 2rem 1.2rem 2rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+                    <div>
+                        <div class="dashboard-title">إدارة العملاء</div>
+                        <div class="dashboard-subtitle">جميع العملاء في النظام</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <i class="bi bi-upload"></i> رفع إكسل
+                        </button>
+                        <button class="btn btn-outline-success">
+                            <i class="bi bi-download"></i> استخراج البيانات
+                        </button>
+                        <button class="btn btn-outline-warning">
+                            <i class="bi bi-arrow-repeat"></i> تغيير الحالة
+                        </button>
+                        <button class="btn btn-outline-info">
+                            <i class="bi bi-people"></i> تخصيص للموظفين
+                        </button>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                            <i class="bi bi-plus"></i> إضافة عميل
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-9">
-            <table id="customersTable" class="table table-striped table-bordered w-100">
-                <thead>
-                    <tr>
-                        <th>رقم الحساب</th>
-                        <th>الاسم الكامل</th>
-                        <th>رقم الجوال</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الحالة</th>
-                        <th>الموظف المسؤول</th>
-                        <th>القسم الفرعي</th>
-                        <th>المدينة</th>
-                        <th>خيارات</th>
-                    </tr>
-                    <tr>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="بحث..."></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="بحث..."></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="بحث..."></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="بحث..."></th>
-                        <th><select class="form-select form-select-sm"><option>الكل</option></select></th>
-                        <th><select class="form-select form-select-sm"><option>الكل</option></select></th>
-                        <th><select class="form-select form-select-sm"><option>الكل</option></select></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="بحث..."></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- بيانات العملاء ستظهر هنا -->
-                </tbody>
-            </table>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4 g-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-label">إجمالي العملاء</div>
+                    <div class="stat-value">{{ $customers->count() }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-label">الحالات الجديدة</div>
+                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-label">الحالات النشطة</div>
+                    <div class="stat-value">{{ $customers->whereIn('status', ['in_progress', 'follow_up'])->count() }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-label">الحالات المغلقة</div>
+                    <div class="stat-value">{{ $customers->where('status', 'closed')->count() }}</div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-3">
-            <div class="card" id="customerSidebar" style="display:none;">
-                <div class="card-header bg-info text-white">معلومات العميل</div>
-                <div class="card-body">
-                    <!-- تفاصيل العميل ستظهر هنا -->
+
+        <!-- Reports Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="modern-table">
+                    <div class="table-header">التقارير حسب الحالة</div>
+                    <div class="p-4">
+                        <div class="row g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card no-answer">
+                                    <div class="stat-label">No answer</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card hot">
+                                    <div class="stat-label">Hot</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'hot')->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card western">
+                                    <div class="stat-label">Western</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'western')->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card follow">
+                                    <div class="stat-label">Follow</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'follow_up')->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card deposits">
+                                    <div class="stat-label">Deposits</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'in_progress')->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card not-interested">
+                                    <div class="stat-label">Not interested</div>
+                                    <div class="stat-value">0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card no-answer2">
+                                    <div class="stat-label">No answer2</div>
+                                    <div class="stat-value">0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stat-card no-answer1">
+                                    <div class="stat-label">No answer1</div>
+                                    <div class="stat-value">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Table Section -->
+        <div class="row">
+            <div class="col-12" id="tableContainer">
+                <div class="modern-table">
+                    <div class="table-header">قائمة العملاء</div>
+                    <div class="table-responsive">
+                        <table id="customersTable" class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الحساب</th>
+                                    <th>الاسم الكامل</th>
+                                    <th>رقم الجوال</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الحالة</th>
+                                    <th>الموظف المسؤول</th>
+                                    <th>القسم الفرعي</th>
+                                    <th>المدينة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($customers as $customer)
+                                <tr data-customer-id="{{ $customer->id }}">
+                                    <td><strong>{{ $customer->ac_number }}</strong></td>
+                                    <td>{{ $customer->full_name }}</td>
+                                    <td>{{ $customer->mobile_number }}</td>
+                                    <td>{{ $customer->email ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $statusColors = [
+                                                'new' => 'bg-secondary',
+                                                'in_progress' => 'bg-primary',
+                                                'follow_up' => 'bg-info',
+                                                'western' => 'bg-warning',
+                                                'hot' => 'bg-danger',
+                                                'closed' => 'bg-success'
+                                            ];
+                                            $statusColor = $statusColors[$customer->status] ?? 'bg-secondary';
+                                        @endphp
+                                        <span class="badge {{ $statusColor }} status-badge">{{ $customer->status }}</span>
+                                    </td>
+                                    <td>{{ $customer->assignedEmployee->name ?? 'غير محدد' }}</td>
+                                    <td>{{ $customer->subDepartment->name ?? 'غير محدد' }}</td>
+                                    <td>{{ $customer->city ?? '-' }}</td>
+                                    <td>
+                                        <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-primary btn-action">عرض</a>
+                                        <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-warning btn-action">تعديل</a>
+                                        <button class="btn btn-sm btn-danger btn-action" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->full_name }}')">حذف</button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Sidebar (Hidden initially) -->
+        <div class="row" id="sidebarContainer" style="display:none;">
+            <div class="col-md-9">
+                <div class="modern-table">
+                    <div class="table-header">قائمة العملاء</div>
+                    <div class="table-responsive">
+                        <table id="customersTableSidebar" class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الحساب</th>
+                                    <th>الاسم الكامل</th>
+                                    <th>رقم الجوال</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الحالة</th>
+                                    <th>الموظف المسؤول</th>
+                                    <th>القسم الفرعي</th>
+                                    <th>المدينة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($customers as $customer)
+                                <tr data-customer-id="{{ $customer->id }}">
+                                    <td><strong>{{ $customer->ac_number }}</strong></td>
+                                    <td>{{ $customer->full_name }}</td>
+                                    <td>{{ $customer->mobile_number }}</td>
+                                    <td>{{ $customer->email ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $statusColors = [
+                                                'new' => 'bg-secondary',
+                                                'in_progress' => 'bg-primary',
+                                                'follow_up' => 'bg-info',
+                                                'western' => 'bg-warning',
+                                                'hot' => 'bg-danger',
+                                                'closed' => 'bg-success'
+                                            ];
+                                            $statusColor = $statusColors[$customer->status] ?? 'bg-secondary';
+                                        @endphp
+                                        <span class="badge {{ $statusColor }} status-badge">{{ $customer->status }}</span>
+                                    </td>
+                                    <td>{{ $customer->assignedEmployee->name ?? 'غير محدد' }}</td>
+                                    <td>{{ $customer->subDepartment->name ?? 'غير محدد' }}</td>
+                                    <td>{{ $customer->city ?? '-' }}</td>
+                                    <td>
+                                        <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-primary btn-action">عرض</a>
+                                        <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-warning btn-action">تعديل</a>
+                                        <button class="btn btn-sm btn-danger btn-action" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->full_name }}')">حذف</button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="customer-sidebar" id="customerSidebar">
+                    <div class="sidebar-header d-flex justify-content-between align-items-center">
+                        <span>معلومات العميل</span>
+                        <button type="button" class="btn-close btn-close-white" onclick="closeSidebar()" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="sidebar-body" id="customerSidebarContent">
+                        <!-- تفاصيل العميل ستظهر هنا -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -66,18 +673,50 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form action="{{ route('customers.store') }}" method="POST">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label">رقم الحساب</label>
+                        <input type="text" class="form-control" name="ac_number" required>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">الاسم الكامل</label>
-                        <input type="text" class="form-control">
+                        <input type="text" class="form-control" name="full_name" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">رقم الجوال</label>
-                        <input type="text" class="form-control">
+                        <input type="text" class="form-control" name="mobile_number" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">البريد الإلكتروني</label>
-                        <input type="email" class="form-control">
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الحالة</label>
+                        <select class="form-select" name="status" required>
+                            <option value="new">جديد</option>
+                            <option value="in_progress">قيد المعالجة</option>
+                            <option value="follow_up">متابعة</option>
+                            <option value="western">غربي</option>
+                            <option value="hot">ساخن</option>
+                            <option value="closed">مغلق</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">القسم الفرعي</label>
+                        <select class="form-select" name="sub_department_id" required>
+                            @foreach($subDepartments as $subDepartment)
+                                <option value="{{ $subDepartment->id }}">{{ $subDepartment->name }} - {{ $subDepartment->department->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الموظف المسؤول</label>
+                        <select class="form-select" name="assigned_employee_id" required>
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-success w-100">حفظ</button>
                 </form>
@@ -95,9 +734,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
                     <div class="mb-3">
-                        <input type="file" class="form-control">
+                        <label class="form-label">اختر ملف الإكسل</label>
+                        <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">رفع</button>
                 </form>
@@ -105,21 +746,233 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Customer Form -->
+<form id="deleteCustomerForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
 @endsection
 
 @section('scripts')
 <script>
 $(document).ready(function() {
+    // Initialize DataTable for main table
     var table = $('#customersTable').DataTable({
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+        },
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
+        order: [[0, 'desc']],
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        initComplete: function () {
+            // Add custom search functionality
+            this.api().columns().every(function () {
+                var column = this;
+                var title = column.header().textContent;
+
+                // Create search input for each column
+                if (title !== 'الإجراءات') {
+                    var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
+                        .appendTo($(column.header()))
+                        .on('keyup change', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
+                }
+            });
+        },
+        drawCallback: function() {
+            // Add row selection highlighting
+            $('#customersTable tbody tr').click(function() {
+                $('#customersTable tbody tr').removeClass('selected');
+                $(this).addClass('selected');
+            });
         }
     });
-    // عند الضغط على صف، عرض تفاصيل العميل في الشريط الجانبي
+
+    // Initialize DataTable for sidebar table
+    var tableSidebar = $('#customersTableSidebar').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+        },
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
+        order: [[0, 'desc']],
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        initComplete: function () {
+            // Add custom search functionality
+            this.api().columns().every(function () {
+                var column = this;
+                var title = column.header().textContent;
+
+                // Create search input for each column
+                if (title !== 'الإجراءات') {
+                    var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
+                        .appendTo($(column.header()))
+                        .on('keyup change', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
+                }
+            });
+        },
+        drawCallback: function() {
+            // Add row selection highlighting
+            $('#customersTableSidebar tbody tr').click(function() {
+                $('#customersTableSidebar tbody tr').removeClass('selected');
+                $(this).addClass('selected');
+            });
+        }
+    });
+
+    // عند الضغط على صف في الجدول الرئيسي، عرض تفاصيل العميل في الشريط الجانبي
     $('#customersTable tbody').on('click', 'tr', function () {
-        $('#customerSidebar').show();
-        // جلب بيانات العميل وعرضها هنا
+        var customerId = $(this).data('customer-id');
+        if (customerId) {
+            loadCustomerDetails(customerId);
+            $('#tableContainer').hide();
+            $('#sidebarContainer').show();
+        }
+    });
+
+    // عند الضغط على صف في جدول الشريط الجانبي، عرض تفاصيل العميل
+    $('#customersTableSidebar tbody').on('click', 'tr', function () {
+        var customerId = $(this).data('customer-id');
+        if (customerId) {
+            loadCustomerDetails(customerId);
+        }
+    });
+
+    // Add keyboard navigation
+    $(document).keydown(function(e) {
+        if (e.keyCode === 27) { // ESC key
+            closeSidebar();
+        }
+    });
+
+    // Add search highlight functionality
+    $('.dataTables_filter input').on('keyup', function() {
+        var searchTerm = $(this).val();
+        if (searchTerm.length > 0) {
+            $('.dataTables_filter input').addClass('searching');
+        } else {
+            $('.dataTables_filter input').removeClass('searching');
+        }
     });
 });
+
+function loadCustomerDetails(customerId) {
+    $('#customerSidebarContent').html('<p>جاري تحميل تفاصيل العميل...</p>');
+
+    $.ajax({
+        url: '{{ url("customers") }}/' + customerId,
+        method: 'GET',
+        success: function(response) {
+            var customer = response;
+            var statusColors = {
+                'new': 'bg-secondary',
+                'in_progress': 'bg-primary',
+                'follow_up': 'bg-info',
+                'western': 'bg-warning',
+                'hot': 'bg-danger',
+                'closed': 'bg-success'
+            };
+            var statusColor = statusColors[customer.status] || 'bg-secondary';
+
+            var html = `
+                <div class="info-row">
+                    <span class="info-label">الاسم الكامل:</span>
+                    <span class="info-value">${customer.full_name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الحساب:</span>
+                    <span class="info-value">${customer.ac_number}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الهاتف:</span>
+                    <span class="info-value">${customer.mobile_number}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">البريد الإلكتروني:</span>
+                    <span class="info-value">${customer.email || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الحالة:</span>
+                    <span class="badge ${statusColor} status-badge">${customer.status}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الموظف المسؤول:</span>
+                    <span class="info-value">${customer.assigned_employee ? customer.assigned_employee.name : 'غير محدد'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">القسم الفرعي:</span>
+                    <span class="info-value">${customer.sub_department ? customer.sub_department.name : 'غير محدد'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">القسم الرئيسي:</span>
+                    <span class="info-value">${customer.sub_department && customer.sub_department.department ? customer.sub_department.department.name : 'غير محدد'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الجنسية:</span>
+                    <span class="info-value">${customer.nationality || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">المدينة:</span>
+                    <span class="info-value">${customer.city || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">طريقة التواصل:</span>
+                    <span class="info-value">${customer.contact_method || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ الإنشاء:</span>
+                    <span class="info-value">${customer.created_at}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">آخر تحديث:</span>
+                    <span class="info-value">${customer.updated_at}</span>
+                </div>
+                ${customer.comment ? `
+                <div class="info-row">
+                    <span class="info-label">التعليق:</span>
+                    <span class="info-value">${customer.comment}</span>
+                </div>
+                ` : ''}
+                <div class="mt-3">
+                    <a href="{{ url('customers') }}/${customerId}" class="btn btn-primary btn-sm w-100 mb-2">عرض التفاصيل الكاملة</a>
+                    <a href="{{ url('customers') }}/${customerId}/edit" class="btn btn-warning btn-sm w-100">تعديل العميل</a>
+                </div>
+            `;
+
+            $('#customerSidebarContent').html(html);
+        },
+        error: function() {
+            $('#customerSidebarContent').html('<p class="text-danger">حدث خطأ في تحميل تفاصيل العميل</p>');
+        }
+    });
+}
+
+function closeSidebar() {
+    $('#tableContainer').show();
+    $('#sidebarContainer').hide();
+}
+
+function deleteCustomer(id, name) {
+    if (confirm('هل أنت متأكد من حذف العميل "' + name + '"؟')) {
+        const form = document.getElementById('deleteCustomerForm');
+        form.action = '{{ url("customers") }}/' + id;
+        form.submit();
+    }
+}
 </script>
 @endsection

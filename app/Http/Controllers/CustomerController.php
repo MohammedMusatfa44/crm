@@ -8,13 +8,17 @@ use App\Exports\CustomerExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Events\CustomerAdded;
 use App\Models\Customer;
+use App\Models\SubDepartment;
+use App\Models\User;
 
 class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::all();
-        return view('customers.index', compact('customers'));
+        $customers = Customer::with(['subDepartment.department', 'assignedEmployee'])->get();
+        $subDepartments = SubDepartment::with('department')->get();
+        $users = User::where('is_active', true)->get();
+        return view('customers.index', compact('customers', 'subDepartments', 'users'));
     }
 
     public function create()
@@ -39,7 +43,9 @@ class CustomerController extends Controller
     public function edit($id)
     {
         $customer = Customer::findOrFail($id);
-        return view('customers.edit', compact('customer'));
+        $subDepartments = SubDepartment::with('department')->get();
+        $users = User::where('is_active', true)->get();
+        return view('customers.edit', compact('customer', 'subDepartments', 'users'));
     }
 
     public function update(Request $request, $id)
@@ -51,7 +57,17 @@ class CustomerController extends Controller
             'mobile_number' => 'required',
             'email' => 'nullable|email',
             'status' => 'required',
+            'sub_department_id' => 'required|exists:sub_departments,id',
+            'assigned_employee_id' => 'required|exists:users,id',
+            'nationality' => 'nullable|string',
+            'city' => 'nullable|string',
+            'contact_method' => 'nullable|string',
+            'complaint_reason' => 'nullable|string',
+            'comment' => 'nullable|string',
+            'lead_date' => 'nullable|date',
+            'contacted_other_party' => 'nullable|boolean',
         ]);
+
         $customer->update($validated);
         return redirect()->route('customers.index')->with('success', 'تم تحديث العميل بنجاح');
     }
@@ -73,5 +89,16 @@ class CustomerController extends Controller
     public function export()
     {
         return Excel::download(new CustomerExport, 'customers.xlsx');
+    }
+
+    public function show($id)
+    {
+        $customer = Customer::with(['subDepartment.department', 'assignedEmployee', 'notes'])->findOrFail($id);
+
+        if (request()->wantsJson()) {
+            return response()->json($customer);
+        }
+
+        return view('customers.show', compact('customer'));
     }
 }

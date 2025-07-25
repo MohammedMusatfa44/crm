@@ -53,4 +53,10 @@ class DepartmentController extends Controller
         $department->delete();
         return redirect()->route('departments.index')->with('success', 'تم حذف القسم بنجاح');
     }
+
+    public function show($id)
+    {
+        $department = Department::with('subDepartments')->findOrFail($id);
+        return view('departments.show', compact('department'));
+    }
 }

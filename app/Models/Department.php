@@ -9,6 +9,11 @@ class Department extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'name',
+        'is_active',
+    ];
+
     // Relationships
     public function subDepartments()
     {

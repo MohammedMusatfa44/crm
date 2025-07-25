@@ -149,6 +149,263 @@
         font-weight: bold;
         opacity: 0.98;
     }
+    .reports-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .reports-filters .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 0.8rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        min-width: 150px;
+    }
+    .reports-filters .form-control:focus {
+        border-color: #4f5bd5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 91, 213, 0.25);
+        outline: none;
+    }
+    .search-section {
+        margin-bottom: 2rem;
+    }
+    .search-box {
+        background: #fff;
+        border-radius: 1.2rem;
+        box-shadow: 0 2px 12px rgba(33,150,243,0.08);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .search-box .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 0.8rem;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        flex: 1;
+    }
+    .search-box .form-control:focus {
+        border-color: #4f5bd5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 91, 213, 0.25);
+        outline: none;
+    }
+    .search-box .btn {
+        background: #4f5bd5;
+        color: #fff;
+        border: none;
+        border-radius: 0.8rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .search-box .btn:hover {
+        background: #3f4db5;
+        transform: translateY(-1px);
+    }
+    .chart-card {
+        background: #fff;
+        border-radius: 1.2rem;
+        box-shadow: 0 2px 12px rgba(33,150,243,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        height: 300px;
+    }
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #222;
+    }
+    .report-card {
+        background: #fff;
+        border-radius: 1.2rem;
+        box-shadow: 0 2px 12px rgba(33,150,243,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s ease;
+        cursor: pointer;
+    }
+    .report-card:hover {
+        transform: translateY(-2px);
+    }
+    .report-card .report-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        color: #fff;
+    }
+    .report-card .report-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #222;
+    }
+    .report-card .report-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #4f5bd5;
+    }
+    .report-card .report-change {
+        font-size: 0.9rem;
+        color: #28a745;
+        margin-top: 0.5rem;
+    }
+    .report-card .report-change.negative {
+        color: #dc3545;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .dashboard-bg {
+            padding: 1rem 0;
+        }
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+        .dashboard-subtitle {
+            font-size: 1rem;
+        }
+        .top-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .top-actions .btn {
+            width: 100%;
+            font-size: 0.85rem;
+            padding: 0.6rem 1rem;
+        }
+        .stat-card {
+            min-height: 90px;
+            padding: 1rem;
+        }
+        .stat-card .stat-label {
+            font-size: 1rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+        }
+        .search-box {
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .search-box .form-control {
+            width: 100%;
+        }
+        .search-box .btn {
+            width: 100%;
+        }
+        .reports-filters {
+            flex-direction: column;
+        }
+        .reports-filters .form-control {
+            width: 100%;
+            min-width: auto;
+        }
+        .chart-card {
+            height: 250px;
+            padding: 1rem;
+        }
+        .chart-title {
+            font-size: 1rem;
+        }
+        .report-card {
+            padding: 1rem;
+        }
+        .report-card .report-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+        .report-card .report-title {
+            font-size: 0.9rem;
+        }
+        .report-card .report-value {
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .dashboard-header-card {
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .stat-card {
+            min-height: 80px;
+            padding: 0.8rem;
+        }
+        .stat-card .stat-label {
+            font-size: 0.9rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+        }
+        .chart-card {
+            height: 200px;
+            padding: 0.8rem;
+        }
+        .report-card {
+            padding: 0.8rem;
+        }
+        .report-card .report-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+        }
+        .report-card .report-title {
+            font-size: 0.85rem;
+        }
+        .report-card .report-value {
+            font-size: 1.3rem;
+        }
+        .top-actions .btn {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.8rem;
+        }
+        .top-actions .btn i {
+            margin-right: 0.3rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-bg {
+            padding: 0.5rem 0;
+        }
+        .stat-card {
+            min-height: 70px;
+            padding: 0.6rem;
+        }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.3rem;
+        }
+        .chart-card {
+            height: 180px;
+            padding: 0.6rem;
+        }
+        .report-card {
+            padding: 0.6rem;
+        }
+        .report-card .report-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.9rem;
+        }
+        .report-card .report-title {
+            font-size: 0.8rem;
+        }
+        .report-card .report-value {
+            font-size: 1.2rem;
+        }
+    }
 </style>
 @endsection
 
@@ -164,7 +421,7 @@
                     </div>
                     <div class="top-actions">
                         <button class="btn btn-settings">الإعدادات</button>
-                        <button class="btn btn-add">إضافة قسم جديد</button>
+                        <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">إضافة قسم جديد</button>
                     </div>
                 </div>
             </div>
@@ -284,6 +541,27 @@
                     <div class="report-label">Not interested</div>
                     <div class="report-value">0</div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal: إضافة قسم -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDepartmentModalLabel">إضافة قسم جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('departments.store') }}" method="POST">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label">اسم القسم</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">حفظ</button>
+                </form>
             </div>
         </div>
     </div>

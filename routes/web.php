@@ -30,8 +30,8 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     // Customer routes
     Route::resource('customers', App\Http\Controllers\CustomerController::class);
-    Route::post('customers/import', [App\Http\Controllers\CustomerController::class, 'import']);
-    Route::get('customers/export', [App\Http\Controllers\CustomerController::class, 'export']);
+    Route::post('customers/import', [App\Http\Controllers\CustomerController::class, 'import'])->name('customers.import');
+    Route::get('customers/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/assign', [App\Http\Controllers\CustomerController::class, 'assign']);
     Route::post('customers/bulk-update', [App\Http\Controllers\CustomerController::class, 'bulkUpdate']);
 
@@ -47,7 +47,9 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     // Department routes
     Route::resource('departments', App\Http\Controllers\DepartmentController::class);
+    Route::get('departments/{id}', [App\Http\Controllers\DepartmentController::class, 'show'])->name('departments.show');
     Route::resource('sub-departments', App\Http\Controllers\SubDepartmentController::class);
+    Route::get('sub-departments/{id}', [App\Http\Controllers\SubDepartmentController::class, 'show'])->name('sub-departments.show');
 
     // Notification routes
     Route::resource('notifications', App\Http\Controllers\NotificationController::class);

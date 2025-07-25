@@ -2,25 +2,29 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Department;
 
 class DepartmentSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        \App\Models\Department::create([
-            'name' => 'قسم خدمة العملاء',
-            'description' => 'قسم يهتم بخدمة العملاء',
-            'is_active' => true,
-        ]);
-        \App\Models\Department::create([
-            'name' => 'قسم الدعم الفني',
-            'description' => 'قسم يهتم بالدعم الفني',
-            'is_active' => true,
-        ]);
+        $departments = [
+            'قسم الشكاوى',
+            'قسم المبيعات',
+            'قسم الدعم الفني',
+            'قسم التسويق',
+            'قسم الموارد البشرية',
+            'قسم المحاسبة',
+            'قسم الإنتاج',
+            'قسم الجودة'
+        ];
+
+        foreach ($departments as $department) {
+            Department::create([
+                'name' => $department,
+                'is_active' => true,
+            ]);
+        }
     }
 }

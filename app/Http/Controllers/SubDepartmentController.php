@@ -58,4 +58,10 @@ class SubDepartmentController extends Controller
         $subDepartment->delete();
         return redirect()->route('sub-departments.index')->with('success', 'تم حذف القسم الفرعي بنجاح');
     }
+
+    public function show($id)
+    {
+        $subDepartment = SubDepartment::with(['department', 'customers'])->findOrFail($id);
+        return view('sub_departments.show', compact('subDepartment'));
+    }
 }
