@@ -20,6 +20,12 @@ class UserSession extends Model
         'is_active',
     ];
 
+    protected $casts = [
+        'login_at' => 'datetime',
+        'logout_at' => 'datetime',
+        'is_active' => 'boolean',
+    ];
+
     // Relationships
     public function user()
     {

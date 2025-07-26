@@ -250,7 +250,7 @@
     .report-card .report-value {
         font-size: 1.8rem;
         font-weight: bold;
-        color: #4f5bd5;
+        color: #ffffff;
     }
     .report-card .report-change {
         font-size: 0.9rem;
@@ -495,51 +495,62 @@
         </div>
         <div class="reports-section">
             <div class="reports-title">Reports</div>
+
+            <!-- Debug Section (temporary) -->
             <div class="reports-filters">
-                <span>From:</span>
-                <input type="text" placeholder="DD" maxlength="2" size="2">
-                <input type="text" placeholder="MM" maxlength="2" size="2">
-                <input type="text" placeholder="YY" maxlength="2" size="2">
-                <span>To:</span>
-                <input type="text" placeholder="DD" maxlength="2" size="2">
-                <input type="text" placeholder="MM" maxlength="2" size="2">
-                <input type="text" placeholder="YY" maxlength="2" size="2">
-                <input type="text" placeholder="use" style="width:60px;">
-                <select><option>الكويت</option></select>
-                <button class="btn">Search</button>
+                <span>القسم الرئيسي:</span>
+                <select id="departmentFilter" class="form-select" style="width: auto;">
+                    <option value="">جميع الأقسام</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                            {{ $dept->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <span>القسم الفرعي:</span>
+                <select id="subDepartmentFilter" class="form-select" style="width: auto;">
+                    <option value="">جميع الأقسام الفرعية</option>
+                    @foreach($subDepartments as $subDept)
+                        <option value="{{ $subDept->id }}" {{ $subDepartmentId == $subDept->id ? 'selected' : '' }}>
+                            {{ $subDept->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <button class="btn btn-primary" onclick="applyFilters()">تطبيق الفلتر</button>
+                <button class="btn btn-secondary" onclick="clearFilters()">مسح الفلتر</button>
             </div>
             <div class="reports-grid">
                 <div class="report-card blue">
-                    <div class="report-label">Deposits</div>
-                    <div class="report-value">0</div>
-                </div>
-                <div class="report-card purple">
-                    <div class="report-label">Follow</div>
-                    <div class="report-value">0</div>
-                </div>
-                <div class="report-card orange">
-                    <div class="report-label">Western</div>
-                    <div class="report-value">0</div>
+                    <div class="report-label">No answer</div>
+                    <div class="report-value">{{ $customerStatusCounts['no_answer'] ?? 0 }}</div>
                 </div>
                 <div class="report-card red">
                     <div class="report-label">Hot</div>
-                    <div class="report-value">0</div>
+                    <div class="report-value">{{ $customerStatusCounts['hot'] ?? 0 }}</div>
+                </div>
+                <div class="report-card orange">
+                    <div class="report-label">Western</div>
+                    <div class="report-value">{{ $customerStatusCounts['western'] ?? 0 }}</div>
+                </div>
+                <div class="report-card purple">
+                    <div class="report-label">Follow</div>
+                    <div class="report-value">{{ $customerStatusCounts['follow'] ?? 0 }}</div>
                 </div>
                 <div class="report-card blue">
-                    <div class="report-label">No answer</div>
-                    <div class="report-value">0</div>
-                </div>
-                <div class="report-card blue">
-                    <div class="report-label">No answer1</div>
-                    <div class="report-value">0</div>
-                </div>
-                <div class="report-card blue">
-                    <div class="report-label">No answer2</div>
-                    <div class="report-value">0</div>
+                    <div class="report-label">Deposits</div>
+                    <div class="report-value">{{ $customerStatusCounts['deposits'] ?? 0 }}</div>
                 </div>
                 <div class="report-card gray">
                     <div class="report-label">Not interested</div>
-                    <div class="report-value">0</div>
+                    <div class="report-value">{{ $customerStatusCounts['not_interested'] ?? 0 }}</div>
+                </div>
+                <div class="report-card blue">
+                    <div class="report-label">No answer2</div>
+                    <div class="report-value">{{ $customerStatusCounts['no_answer2'] ?? 0 }}</div>
+                </div>
+                <div class="report-card blue">
+                    <div class="report-label">No answer1</div>
+                    <div class="report-value">{{ $customerStatusCounts['no_answer1'] ?? 0 }}</div>
                 </div>
             </div>
         </div>
@@ -571,170 +582,272 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-    // Modern Chart.js line chart with gradient
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(33,150,243,0.3)');
-    gradient.addColorStop(1, 'rgba(33,150,243,0.05)');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{
-                label: 'العملاء الجدد',
-                data: [12, 19, 3, 5, 2, 3],
-                fill: true,
-                backgroundColor: gradient,
-                borderColor: '#0b58ca',
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#0b58ca',
-                pointRadius: 6,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true, position: 'top' }
+    // Global variables for charts
+    let mainChart, usersChart, reminderChart, subCategoriesChart, categoriesChart;
+
+    // Chart data from controller
+    const chartData = @json($chartData ?? []);
+    const statusCounts = @json($customerStatusCounts ?? []);
+
+    // Initialize charts with real data
+    function initializeCharts() {
+        // Main Chart
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(33,150,243,0.3)');
+        gradient.addColorStop(1, 'rgba(33,150,243,0.05)');
+
+        mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: 'العملاء الجدد',
+                    data: chartData.customers || [12, 19, 3, 5, 2, 3],
+                    fill: true,
+                    backgroundColor: gradient,
+                    borderColor: '#0b58ca',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#0b58ca',
+                    pointRadius: 6,
+                    tension: 0.4
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#e3e6ea' },
-                    ticks: { color: '#888' }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' }
                 },
-                x: {
-                    grid: { color: '#f3f4f6' },
-                    ticks: { color: '#888' }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#e3e6ea' },
+                        ticks: { color: '#888' }
+                    },
+                    x: {
+                        grid: { color: '#f3f4f6' },
+                        ticks: { color: '#888' }
+                    }
                 }
             }
+        });
+
+        // Users Chart
+        const usersCtx = document.getElementById('usersChart').getContext('2d');
+        const usersGradient = usersCtx.createLinearGradient(0, 0, 0, 200);
+        usersGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
+        usersGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
+
+        usersChart = new Chart(usersCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: 'Users',
+                    data: chartData.users || [2, 3, 4, 3, 5, 6],
+                    fill: true,
+                    backgroundColor: usersGradient,
+                    borderColor: '#0b58ca',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#0b58ca',
+                    pointRadius: 6,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
+                    x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
+                }
+            }
+        });
+
+        // Reminder Chart
+        const reminderCtx = document.getElementById('reminderChart').getContext('2d');
+        const reminderGradient = reminderCtx.createLinearGradient(0, 0, 0, 200);
+        reminderGradient.addColorStop(0, 'rgba(123, 67, 151, 0.3)');
+        reminderGradient.addColorStop(1, 'rgba(123, 67, 151, 0.05)');
+
+        reminderChart = new Chart(reminderCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: 'Reminder',
+                    data: [1, 2, 1, 3, 2, 4], // Static data for reminders
+                    fill: true,
+                    backgroundColor: reminderGradient,
+                    borderColor: '#7f53ac',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#7f53ac',
+                    pointRadius: 6,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
+                    x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
+                }
+            }
+        });
+
+        // Sub Categories Chart
+        const subCategoriesCtx = document.getElementById('subCategoriesChart').getContext('2d');
+        const subCategoriesGradient = subCategoriesCtx.createLinearGradient(0, 0, 0, 200);
+        subCategoriesGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
+        subCategoriesGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
+
+        subCategoriesChart = new Chart(subCategoriesCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: 'Sub Categories',
+                    data: chartData.sub_departments || [1, 1, 2, 2, 3, 2],
+                    fill: true,
+                    backgroundColor: subCategoriesGradient,
+                    borderColor: '#5f8fff',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#5f8fff',
+                    pointRadius: 6,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
+                    x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
+                }
+            }
+        });
+
+        // Categories Chart
+        const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
+        const categoriesGradient = categoriesCtx.createLinearGradient(0, 0, 0, 200);
+        categoriesGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
+        categoriesGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
+
+        categoriesChart = new Chart(categoriesCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                datasets: [{
+                    label: 'Categories',
+                    data: chartData.departments || [2, 2, 2, 3, 3, 4],
+                    fill: true,
+                    backgroundColor: categoriesGradient,
+                    borderColor: '#4f5bd5',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4f5bd5',
+                    pointRadius: 6,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
+                    x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
+                }
+            }
+        });
+    }
+
+    // Update charts with new data
+    function updateCharts(newChartData) {
+        if (mainChart) {
+            mainChart.data.datasets[0].data = newChartData.customers || [];
+            mainChart.update();
+        }
+        if (usersChart) {
+            usersChart.data.datasets[0].data = newChartData.users || [];
+            usersChart.update();
+        }
+        if (subCategoriesChart) {
+            subCategoriesChart.data.datasets[0].data = newChartData.sub_departments || [];
+            subCategoriesChart.update();
+        }
+        if (categoriesChart) {
+            categoriesChart.data.datasets[0].data = newChartData.departments || [];
+            categoriesChart.update();
+        }
+    }
+
+    // Update reports with new data
+    function updateReports(newStatusCounts) {
+        document.querySelector('.report-card.blue .report-value').textContent = newStatusCounts.deposits || 0;
+        document.querySelectorAll('.report-card.purple .report-value')[0].textContent = newStatusCounts.follow || 0;
+        document.querySelectorAll('.report-card.orange .report-value')[0].textContent = newStatusCounts.western || 0;
+        document.querySelectorAll('.report-card.red .report-value')[0].textContent = newStatusCounts.hot || 0;
+        document.querySelectorAll('.report-card.blue .report-value')[1].textContent = newStatusCounts.no_answer || 0;
+        document.querySelectorAll('.report-card.blue .report-value')[2].textContent = newStatusCounts.no_answer1 || 0;
+        document.querySelectorAll('.report-card.blue .report-value')[3].textContent = newStatusCounts.no_answer2 || 0;
+        document.querySelector('.report-card.gray .report-value').textContent = newStatusCounts.not_interested || 0;
+    }
+
+    // Apply filters
+    function applyFilters() {
+        const departmentId = document.getElementById('departmentFilter').value;
+        const subDepartmentId = document.getElementById('subDepartmentFilter').value;
+
+        // Update URL with filters
+        const url = new URL(window.location);
+        if (departmentId) url.searchParams.set('department_id', departmentId);
+        else url.searchParams.delete('department_id');
+        if (subDepartmentId) url.searchParams.set('sub_department_id', subDepartmentId);
+        else url.searchParams.delete('sub_department_id');
+
+        // Reload page with filters
+        window.location.href = url.toString();
+    }
+
+    // Clear filters
+    function clearFilters() {
+        document.getElementById('departmentFilter').value = '';
+        document.getElementById('subDepartmentFilter').value = '';
+        window.location.href = window.location.pathname;
+    }
+
+    // Load sub-departments when department changes
+    document.getElementById('departmentFilter').addEventListener('change', function() {
+        const departmentId = this.value;
+        const subDepartmentSelect = document.getElementById('subDepartmentFilter');
+
+        // Clear sub-departments
+        subDepartmentSelect.innerHTML = '<option value="">جميع الأقسام الفرعية</option>';
+
+        if (departmentId) {
+            // Fetch sub-departments
+            fetch(`/dashboard/sub-departments?department_id=${departmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(subDept => {
+                        const option = document.createElement('option');
+                        option.value = subDept.id;
+                        option.textContent = subDept.name;
+                        subDepartmentSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading sub-departments:', error));
         }
     });
 
-    // Users Chart
-    const usersCtx = document.getElementById('usersChart').getContext('2d');
-    const usersGradient = usersCtx.createLinearGradient(0, 0, 0, 200);
-    usersGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
-    usersGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
-    new Chart(usersCtx, {
-        type: 'line',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{
-                label: 'Users',
-                data: [2, 3, 4, 3, 5, 6],
-                fill: true,
-                backgroundColor: usersGradient,
-                borderColor: '#0b58ca',
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#0b58ca',
-                pointRadius: 6,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
-                x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
-            }
-        }
-    });
-    // Reminder Chart
-    const reminderCtx = document.getElementById('reminderChart').getContext('2d');
-    const reminderGradient = reminderCtx.createLinearGradient(0, 0, 0, 200);
-    reminderGradient.addColorStop(0, 'rgba(123, 67, 151, 0.3)');
-    reminderGradient.addColorStop(1, 'rgba(123, 67, 151, 0.05)');
-    new Chart(reminderCtx, {
-        type: 'line',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{
-                label: 'Reminder',
-                data: [1, 2, 1, 3, 2, 4],
-                fill: true,
-                backgroundColor: reminderGradient,
-                borderColor: '#7f53ac',
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#7f53ac',
-                pointRadius: 6,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
-                x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
-            }
-        }
-    });
-    // Sub Categories Chart
-    const subCategoriesCtx = document.getElementById('subCategoriesChart').getContext('2d');
-    const subCategoriesGradient = subCategoriesCtx.createLinearGradient(0, 0, 0, 200);
-    subCategoriesGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
-    subCategoriesGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
-    new Chart(subCategoriesCtx, {
-        type: 'line',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{
-                label: 'Sub Categories',
-                data: [1, 1, 2, 2, 3, 2],
-                fill: true,
-                backgroundColor: subCategoriesGradient,
-                borderColor: '#5f8fff',
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#5f8fff',
-                pointRadius: 6,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
-                x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
-            }
-        }
-    });
-    // Categories Chart
-    const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
-    const categoriesGradient = categoriesCtx.createLinearGradient(0, 0, 0, 200);
-    categoriesGradient.addColorStop(0, 'rgba(33,150,243,0.3)');
-    categoriesGradient.addColorStop(1, 'rgba(33,150,243,0.05)');
-    new Chart(categoriesCtx, {
-        type: 'line',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{
-                label: 'Categories',
-                data: [2, 2, 2, 3, 3, 4],
-                fill: true,
-                backgroundColor: categoriesGradient,
-                borderColor: '#4f5bd5',
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#4f5bd5',
-                pointRadius: 6,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#e3e6ea' }, ticks: { color: '#888' } },
-                x: { grid: { color: '#f3f4f6' }, ticks: { color: '#888' } }
-            }
-        }
+    // Initialize charts when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
     });
 </script>
 @endsection

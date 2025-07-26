@@ -29,7 +29,7 @@ class SubDepartmentController extends Controller
             'is_active' => 'boolean',
         ]);
         SubDepartment::create($validated);
-        return redirect()->route('sub-departments.index')->with('success', 'تم إضافة القسم الفرعي بنجاح');
+        return redirect()->route('departments.show', $validated['department_id'])->with('success', 'تم إضافة القسم الفرعي بنجاح');
     }
 
     public function edit($id)
@@ -49,14 +49,15 @@ class SubDepartmentController extends Controller
             'is_active' => 'boolean',
         ]);
         $subDepartment->update($validated);
-        return redirect()->route('sub-departments.index')->with('success', 'تم تحديث القسم الفرعي بنجاح');
+        return redirect()->route('departments.show', $validated['department_id'])->with('success', 'تم تحديث القسم الفرعي بنجاح');
     }
 
     public function destroy($id)
     {
         $subDepartment = SubDepartment::findOrFail($id);
+        $departmentId = $subDepartment->department_id;
         $subDepartment->delete();
-        return redirect()->route('sub-departments.index')->with('success', 'تم حذف القسم الفرعي بنجاح');
+        return redirect()->route('departments.show', $departmentId)->with('success', 'تم حذف القسم الفرعي بنجاح');
     }
 
     public function show($id)

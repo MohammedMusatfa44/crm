@@ -231,7 +231,7 @@
         </div>
 
         <!-- Reports Section -->
-        <div class="reports-section">
+        {{-- <div class="reports-section">
             <div class="reports-title">التقارير</div>
             <div class="reports-grid">
                 <a href="#" class="report-card blue">
@@ -259,7 +259,7 @@
                     <div class="report-value">PDF</div>
                 </a>
             </div>
-        </div>
+        </div> --}}
     </div>
 </div>
 

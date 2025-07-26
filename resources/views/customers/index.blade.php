@@ -151,8 +151,9 @@
     .btn-action {
         font-size: 0.75rem;
         padding: 0.4rem 0.8rem;
-        margin: 0 0.2rem;
+        margin: 0.3rem;
         border-radius: 0.8rem;
+        width: 100%;
         font-weight: 500;
         transition: all 0.2s ease;
     }
@@ -274,7 +275,9 @@
         }
         .btn-action {
             font-size: 0.7rem;
+            width: 100%;
             padding: 0.3rem 0.6rem;
+            margin: 0.5rem;
         }
         .dashboard-title {
             font-size: 1.5rem;
@@ -367,8 +370,9 @@
         }
         .btn-action {
             font-size: 0.65rem;
+            width: 100%;
             padding: 0.25rem 0.5rem;
-            margin: 0.1rem;
+            margin: 0.3rem;
         }
         .status-badge {
             font-size: 0.7rem;
@@ -432,11 +436,11 @@
                         <button class="btn btn-outline-success">
                             <i class="bi bi-download"></i> استخراج البيانات
                         </button>
-                        <button class="btn btn-outline-warning">
-                            <i class="bi bi-arrow-repeat"></i> تغيير الحالة
+                        <button class="btn btn-outline-warning" id="bulkUpdateBtn" disabled>
+                            <i class="bi bi-arrow-repeat"></i> تغيير الحالة (<span id="selectedCount">0</span>)
                         </button>
-                        <button class="btn btn-outline-info">
-                            <i class="bi bi-people"></i> تخصيص للموظفين
+                        <button class="btn btn-outline-info" id="bulkAssignBtn" disabled>
+                            <i class="bi bi-people"></i> تخصيص للموظفين (<span id="selectedCount2">0</span>)
                         </button>
                         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                             <i class="bi bi-plus"></i> إضافة عميل
@@ -446,92 +450,12 @@
             </div>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="row mb-4 g-4">
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">إجمالي العملاء</div>
-                    <div class="stat-value">{{ $customers->count() }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">الحالات الجديدة</div>
-                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">الحالات النشطة</div>
-                    <div class="stat-value">{{ $customers->whereIn('status', ['in_progress', 'follow_up'])->count() }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">الحالات المغلقة</div>
-                    <div class="stat-value">{{ $customers->where('status', 'closed')->count() }}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reports Section -->
-        <div class="row mb-4">
+        <!-- Reports Button -->
+        <div class="row mb-3">
             <div class="col-12">
-                <div class="modern-table">
-                    <div class="table-header">التقارير حسب الحالة</div>
-                    <div class="p-4">
-                        <div class="row g-3">
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card no-answer">
-                                    <div class="stat-label">No answer</div>
-                                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card hot">
-                                    <div class="stat-label">Hot</div>
-                                    <div class="stat-value">{{ $customers->where('status', 'hot')->count() }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card western">
-                                    <div class="stat-label">Western</div>
-                                    <div class="stat-value">{{ $customers->where('status', 'western')->count() }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card follow">
-                                    <div class="stat-label">Follow</div>
-                                    <div class="stat-value">{{ $customers->where('status', 'follow_up')->count() }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card deposits">
-                                    <div class="stat-label">Deposits</div>
-                                    <div class="stat-value">{{ $customers->where('status', 'in_progress')->count() }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card not-interested">
-                                    <div class="stat-label">Not interested</div>
-                                    <div class="stat-value">0</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card no-answer2">
-                                    <div class="stat-label">No answer2</div>
-                                    <div class="stat-value">0</div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stat-card no-answer1">
-                                    <div class="stat-label">No answer1</div>
-                                    <div class="stat-value">0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <a href="{{ route('customers.reports') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-bar"></i> عرض التقارير
+                </a>
             </div>
         </div>
 
@@ -544,6 +468,7 @@
                         <table id="customersTable" class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th><input type="checkbox" id="selectAll"></th>
                                     <th>رقم الحساب</th>
                                     <th>الاسم الكامل</th>
                                     <th>رقم الجوال</th>
@@ -558,6 +483,7 @@
                             <tbody>
                                 @foreach($customers as $customer)
                                 <tr data-customer-id="{{ $customer->id }}">
+                                    <td><input type="checkbox" class="select-checkbox"></td>
                                     <td><strong>{{ $customer->ac_number }}</strong></td>
                                     <td>{{ $customer->full_name }}</td>
                                     <td>{{ $customer->mobile_number }}</td>
@@ -747,6 +673,77 @@
     </div>
 </div>
 
+<!-- Bulk Update Modal -->
+<div class="modal fade" id="bulkUpdateModal" tabindex="-1" aria-labelledby="bulkUpdateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkUpdateModalLabel">تغيير حالة العملاء المحددين</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="bulkUpdateForm" method="POST" action="{{ route('customers.bulk-update') }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">الحالة الجديدة</label>
+                        <select class="form-select" id="newStatus" name="status" required>
+                            <option value="">اختر الحالة</option>
+                            <option value="new">جديد</option>
+                            <option value="in_progress">قيد التقدم</option>
+                            <option value="follow_up">متابعة</option>
+                            <option value="western">Western</option>
+                            <option value="hot">Hot</option>
+                            <option value="closed">مغلق</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted">سيتم تغيير حالة <strong><span id="modalSelectedCount">0</span></strong> عميل</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تأكيد التغيير</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assignment Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-labelledby="bulkAssignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkAssignModalLabel">تخصيص العملاء المحددين لموظف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="bulkAssignForm" method="POST" action="{{ route('customers.bulk-assign') }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="assignedEmployee" class="form-label">الموظف المسؤول</label>
+                        <select class="form-select" id="assignedEmployee" name="assigned_employee_id" required>
+                            <option value="">اختر الموظف</option>
+                            @foreach($users as $user)
+                                @if($user->role == 'employee' || $user->role == 'admin')
+                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <p class="text-muted">سيتم تخصيص <strong><span id="modalSelectedCount2">0</span></strong> عميل للموظف المحدد</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تأكيد التخصيص</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Customer Form -->
 <form id="deleteCustomerForm" method="POST" style="display: none;">
     @csrf
@@ -756,223 +753,386 @@
 
 @section('scripts')
 <script>
-$(document).ready(function() {
-    // Initialize DataTable for main table
-    var table = $('#customersTable').DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-        },
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
-        order: [[0, 'desc']],
-        responsive: true,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-             '<"row"<"col-sm-12"tr>>' +
-             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        initComplete: function () {
-            // Add custom search functionality
-            this.api().columns().every(function () {
-                var column = this;
-                var title = column.header().textContent;
+    $(document).ready(function() {
+        // Initialize DataTable for main table
+        var table = $('#customersTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+            },
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
+            order: [[0, 'desc']],
+            responsive: true,
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                 '<"row"<"col-sm-12"tr>>' +
+                 '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+            initComplete: function () {
+                // Add custom search functionality
+                this.api().columns().every(function () {
+                    var column = this;
+                    var title = column.header().textContent;
 
-                // Create search input for each column
-                if (title !== 'الإجراءات') {
-                    var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
-                        .appendTo($(column.header()))
-                        .on('keyup change', function () {
-                            if (column.search() !== this.value) {
-                                column.search(this.value).draw();
-                            }
-                        });
+                    // Create search input for each column
+                    if (title !== 'الإجراءات') {
+                        var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
+                            .appendTo($(column.header()))
+                            .on('keyup change', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                    }
+                });
+            },
+            drawCallback: function() {
+                // Add row selection highlighting
+                $('#customersTable tbody tr').click(function() {
+                    $('#customersTable tbody tr').removeClass('selected');
+                    $(this).addClass('selected');
+                });
+            }
+        });
+
+        // Initialize DataTable for sidebar table
+        var tableSidebar = $('#customersTableSidebar').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+            },
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
+            order: [[0, 'desc']],
+            responsive: true,
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                 '<"row"<"col-sm-12"tr>>' +
+                 '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+            initComplete: function () {
+                // Add custom search functionality
+                this.api().columns().every(function () {
+                    var column = this;
+                    var title = column.header().textContent;
+
+                    // Create search input for each column
+                    if (title !== 'الإجراءات') {
+                        var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
+                            .appendTo($(column.header()))
+                            .on('keyup change', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                    }
+                });
+            },
+            drawCallback: function() {
+                // Add row selection highlighting
+                $('#customersTableSidebar tbody tr').click(function() {
+                    $('#customersTableSidebar tbody tr').removeClass('selected');
+                    $(this).addClass('selected');
+                });
+            }
+        });
+
+        // عند الضغط على صف في الجدول الرئيسي، عرض تفاصيل العميل في الشريط الجانبي
+        $('#customersTable tbody').on('click', 'tr', function (e) {
+            // Don't trigger if clicking on checkbox or its label
+            if ($(e.target).is('input[type="checkbox"]') || $(e.target).is('label') || $(e.target).closest('label').length) {
+                return;
+            }
+
+            var customerId = $(this).data('customer-id');
+            if (customerId) {
+                loadCustomerDetails(customerId);
+                $('#tableContainer').hide();
+                $('#sidebarContainer').show();
+            }
+        });
+
+        // عند الضغط على صف في جدول الشريط الجانبي، عرض تفاصيل العميل
+        $('#customersTableSidebar tbody').on('click', 'tr', function () {
+            var customerId = $(this).data('customer-id');
+            if (customerId) {
+                loadCustomerDetails(customerId);
+            }
+        });
+
+        // Add keyboard navigation
+        $(document).keydown(function(e) {
+            if (e.keyCode === 27) { // ESC key
+                closeSidebar();
+            }
+        });
+
+        // Add search highlight functionality
+        $('.dataTables_filter input').on('keyup', function() {
+            var searchTerm = $(this).val();
+            if (searchTerm.length > 0) {
+                $('.dataTables_filter input').addClass('searching');
+            } else {
+                $('.dataTables_filter input').removeClass('searching');
+            }
+        });
+
+        // Bulk selection functionality
+        $('#selectAll').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            $('.select-checkbox').prop('checked', isChecked);
+            updateBulkButton();
+        });
+
+        $(document).on('change', '.select-checkbox', function() {
+            updateBulkButton();
+
+            // Update select all checkbox
+            var totalCheckboxes = $('.select-checkbox').length;
+            var checkedCheckboxes = $('.select-checkbox:checked').length;
+
+            if (checkedCheckboxes === 0) {
+                $('#selectAll').prop('indeterminate', false).prop('checked', false);
+            } else if (checkedCheckboxes === totalCheckboxes) {
+                $('#selectAll').prop('indeterminate', false).prop('checked', true);
+            } else {
+                $('#selectAll').prop('indeterminate', true);
+            }
+        });
+
+        // Bulk update button click
+        $('#bulkUpdateBtn').on('click', function() {
+            var selectedIds = getSelectedCustomerIds();
+            if (selectedIds.length > 0) {
+                $('#modalSelectedCount').text(selectedIds.length);
+                $('#bulkUpdateModal').modal('show');
+            }
+        });
+
+        // Bulk update form submission
+        $('#bulkUpdateForm').on('submit', function(e) {
+            e.preventDefault();
+
+            var selectedIds = getSelectedCustomerIds();
+            var newStatus = $('#newStatus').val();
+
+            if (selectedIds.length === 0) {
+                alert('الرجاء تحديد العملاء المراد تغيير حالتهم');
+                return;
+            }
+
+            if (!newStatus) {
+                alert('الرجاء اختيار الحالة الجديدة');
+                return;
+            }
+
+            // Add selected IDs to form
+            selectedIds.forEach(function(id) {
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: 'customer_ids[]',
+                    value: id
+                }).appendTo('#bulkUpdateForm');
+            });
+
+            // Submit form
+            $.ajax({
+                url: $('#bulkUpdateForm').attr('action'),
+                method: 'POST',
+                data: $('#bulkUpdateForm').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        $('#bulkUpdateModal').modal('hide');
+                        alert('تم تحديث حالة العملاء بنجاح');
+                        location.reload(); // Refresh page to show updated data
+                    } else {
+                        alert('حدث خطأ أثناء تحديث حالة العملاء');
+                    }
+                },
+                error: function() {
+                    alert('حدث خطأ أثناء تحديث حالة العملاء');
                 }
             });
-        },
-        drawCallback: function() {
-            // Add row selection highlighting
-            $('#customersTable tbody tr').click(function() {
-                $('#customersTable tbody tr').removeClass('selected');
-                $(this).addClass('selected');
-            });
+        });
+
+        function updateBulkButton() {
+            var selectedCount = $('.select-checkbox:checked').length;
+            $('#selectedCount').text(selectedCount);
+            $('#selectedCount2').text(selectedCount);
+
+            if (selectedCount > 0) {
+                $('#bulkUpdateBtn').prop('disabled', false);
+                $('#bulkAssignBtn').prop('disabled', false);
+            } else {
+                $('#bulkUpdateBtn').prop('disabled', true);
+                $('#bulkAssignBtn').prop('disabled', true);
+            }
         }
-    });
 
-    // Initialize DataTable for sidebar table
-    var tableSidebar = $('#customersTableSidebar').DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-        },
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "الكل"]],
-        order: [[0, 'desc']],
-        responsive: true,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-             '<"row"<"col-sm-12"tr>>' +
-             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        initComplete: function () {
-            // Add custom search functionality
-            this.api().columns().every(function () {
-                var column = this;
-                var title = column.header().textContent;
-
-                // Create search input for each column
-                if (title !== 'الإجراءات') {
-                    var input = $('<input class="form-control form-control-sm" type="text" placeholder="بحث في ' + title + '" />')
-                        .appendTo($(column.header()))
-                        .on('keyup change', function () {
-                            if (column.search() !== this.value) {
-                                column.search(this.value).draw();
-                            }
-                        });
+        function getSelectedCustomerIds() {
+            var ids = [];
+            $('.select-checkbox:checked').each(function() {
+                var customerId = $(this).closest('tr').data('customer-id');
+                if (customerId) {
+                    ids.push(customerId);
                 }
             });
-        },
-        drawCallback: function() {
-            // Add row selection highlighting
-            $('#customersTableSidebar tbody tr').click(function() {
-                $('#customersTableSidebar tbody tr').removeClass('selected');
-                $(this).addClass('selected');
+            return ids;
+        }
+
+        // Bulk assignment button click
+        $('#bulkAssignBtn').on('click', function() {
+            var selectedIds = getSelectedCustomerIds();
+            if (selectedIds.length > 0) {
+                $('#modalSelectedCount2').text(selectedIds.length);
+                $('#bulkAssignModal').modal('show');
+            }
+        });
+
+        // Bulk assignment form submission
+        $('#bulkAssignForm').on('submit', function(e) {
+            e.preventDefault();
+
+            var selectedIds = getSelectedCustomerIds();
+            var assignedEmployeeId = $('#assignedEmployee').val();
+
+            if (selectedIds.length === 0) {
+                alert('الرجاء تحديد العملاء المراد تخصيصهم');
+                return;
+            }
+
+            if (!assignedEmployeeId) {
+                alert('الرجاء اختيار الموظف المسؤول');
+                return;
+            }
+
+            // Add selected IDs to form
+            selectedIds.forEach(function(id) {
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: 'customer_ids[]',
+                    value: id
+                }).appendTo('#bulkAssignForm');
             });
-        }
+
+            // Submit form
+            $.ajax({
+                url: $('#bulkAssignForm').attr('action'),
+                method: 'POST',
+                data: $('#bulkAssignForm').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        $('#bulkAssignModal').modal('hide');
+                        alert('تم تخصيص العملاء للموظف بنجاح');
+                        location.reload(); // Refresh page to show updated data
+                    } else {
+                        alert('حدث خطأ أثناء تخصيص العملاء');
+                    }
+                },
+                error: function() {
+                    alert('حدث خطأ أثناء تخصيص العملاء');
+                }
+            });
+        });
     });
 
-    // عند الضغط على صف في الجدول الرئيسي، عرض تفاصيل العميل في الشريط الجانبي
-    $('#customersTable tbody').on('click', 'tr', function () {
-        var customerId = $(this).data('customer-id');
-        if (customerId) {
-            loadCustomerDetails(customerId);
-            $('#tableContainer').hide();
-            $('#sidebarContainer').show();
-        }
-    });
+    function loadCustomerDetails(customerId) {
+        $('#customerSidebarContent').html('<p>جاري تحميل تفاصيل العميل...</p>');
 
-    // عند الضغط على صف في جدول الشريط الجانبي، عرض تفاصيل العميل
-    $('#customersTableSidebar tbody').on('click', 'tr', function () {
-        var customerId = $(this).data('customer-id');
-        if (customerId) {
-            loadCustomerDetails(customerId);
-        }
-    });
+        $.ajax({
+            url: '{{ url("customers") }}/' + customerId,
+            method: 'GET',
+            success: function(response) {
+                var customer = response;
+                var statusColors = {
+                    'new': 'bg-secondary',
+                    'in_progress': 'bg-primary',
+                    'follow_up': 'bg-info',
+                    'western': 'bg-warning',
+                    'hot': 'bg-danger',
+                    'closed': 'bg-success'
+                };
+                var statusColor = statusColors[customer.status] || 'bg-secondary';
 
-    // Add keyboard navigation
-    $(document).keydown(function(e) {
-        if (e.keyCode === 27) { // ESC key
-            closeSidebar();
-        }
-    });
+                var html = `
+                    <div class="info-row">
+                        <span class="info-label">الاسم الكامل:</span>
+                        <span class="info-value">${customer.full_name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">رقم الحساب:</span>
+                        <span class="info-value">${customer.ac_number}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">رقم الهاتف:</span>
+                        <span class="info-value">${customer.mobile_number}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">البريد الإلكتروني:</span>
+                        <span class="info-value">${customer.email || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الحالة:</span>
+                        <span class="badge ${statusColor} status-badge">${customer.status}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الموظف المسؤول:</span>
+                        <span class="info-value">${customer.assigned_employee ? customer.assigned_employee.name : 'غير محدد'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">القسم الفرعي:</span>
+                        <span class="info-value">${customer.sub_department ? customer.sub_department.name : 'غير محدد'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">القسم الرئيسي:</span>
+                        <span class="info-value">${customer.sub_department && customer.sub_department.department ? customer.sub_department.department.name : 'غير محدد'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الجنسية:</span>
+                        <span class="info-value">${customer.nationality || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">المدينة:</span>
+                        <span class="info-value">${customer.city || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">طريقة التواصل:</span>
+                        <span class="info-value">${customer.contact_method || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">تاريخ الإنشاء:</span>
+                        <span class="info-value">${customer.created_at}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">آخر تحديث:</span>
+                        <span class="info-value">${customer.updated_at}</span>
+                    </div>
+                    ${customer.comment ? `
+                    <div class="info-row">
+                        <span class="info-label">التعليق:</span>
+                        <span class="info-value">${customer.comment}</span>
+                    </div>
+                    ` : ''}
+                    <div class="mt-3">
+                        <a href="{{ url('customers') }}/${customerId}" class="btn btn-primary btn-sm w-100 mb-2">عرض التفاصيل الكاملة</a>
+                        <a href="{{ url('customers') }}/${customerId}/edit" class="btn btn-warning btn-sm w-100">تعديل العميل</a>
+                    </div>
+                `;
 
-    // Add search highlight functionality
-    $('.dataTables_filter input').on('keyup', function() {
-        var searchTerm = $(this).val();
-        if (searchTerm.length > 0) {
-            $('.dataTables_filter input').addClass('searching');
-        } else {
-            $('.dataTables_filter input').removeClass('searching');
-        }
-    });
-});
-
-function loadCustomerDetails(customerId) {
-    $('#customerSidebarContent').html('<p>جاري تحميل تفاصيل العميل...</p>');
-
-    $.ajax({
-        url: '{{ url("customers") }}/' + customerId,
-        method: 'GET',
-        success: function(response) {
-            var customer = response;
-            var statusColors = {
-                'new': 'bg-secondary',
-                'in_progress': 'bg-primary',
-                'follow_up': 'bg-info',
-                'western': 'bg-warning',
-                'hot': 'bg-danger',
-                'closed': 'bg-success'
-            };
-            var statusColor = statusColors[customer.status] || 'bg-secondary';
-
-            var html = `
-                <div class="info-row">
-                    <span class="info-label">الاسم الكامل:</span>
-                    <span class="info-value">${customer.full_name}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">رقم الحساب:</span>
-                    <span class="info-value">${customer.ac_number}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">رقم الهاتف:</span>
-                    <span class="info-value">${customer.mobile_number}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">البريد الإلكتروني:</span>
-                    <span class="info-value">${customer.email || '-'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الحالة:</span>
-                    <span class="badge ${statusColor} status-badge">${customer.status}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الموظف المسؤول:</span>
-                    <span class="info-value">${customer.assigned_employee ? customer.assigned_employee.name : 'غير محدد'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">القسم الفرعي:</span>
-                    <span class="info-value">${customer.sub_department ? customer.sub_department.name : 'غير محدد'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">القسم الرئيسي:</span>
-                    <span class="info-value">${customer.sub_department && customer.sub_department.department ? customer.sub_department.department.name : 'غير محدد'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الجنسية:</span>
-                    <span class="info-value">${customer.nationality || '-'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">المدينة:</span>
-                    <span class="info-value">${customer.city || '-'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">طريقة التواصل:</span>
-                    <span class="info-value">${customer.contact_method || '-'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">تاريخ الإنشاء:</span>
-                    <span class="info-value">${customer.created_at}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">آخر تحديث:</span>
-                    <span class="info-value">${customer.updated_at}</span>
-                </div>
-                ${customer.comment ? `
-                <div class="info-row">
-                    <span class="info-label">التعليق:</span>
-                    <span class="info-value">${customer.comment}</span>
-                </div>
-                ` : ''}
-                <div class="mt-3">
-                    <a href="{{ url('customers') }}/${customerId}" class="btn btn-primary btn-sm w-100 mb-2">عرض التفاصيل الكاملة</a>
-                    <a href="{{ url('customers') }}/${customerId}/edit" class="btn btn-warning btn-sm w-100">تعديل العميل</a>
-                </div>
-            `;
-
-            $('#customerSidebarContent').html(html);
-        },
-        error: function() {
-            $('#customerSidebarContent').html('<p class="text-danger">حدث خطأ في تحميل تفاصيل العميل</p>');
-        }
-    });
-}
-
-function closeSidebar() {
-    $('#tableContainer').show();
-    $('#sidebarContainer').hide();
-}
-
-function deleteCustomer(id, name) {
-    if (confirm('هل أنت متأكد من حذف العميل "' + name + '"؟')) {
-        const form = document.getElementById('deleteCustomerForm');
-        form.action = '{{ url("customers") }}/' + id;
-        form.submit();
+                $('#customerSidebarContent').html(html);
+            },
+            error: function() {
+                $('#customerSidebarContent').html('<p class="text-danger">حدث خطأ في تحميل تفاصيل العميل</p>');
+            }
+        });
     }
-}
+
+    function closeSidebar() {
+        $('#tableContainer').show();
+        $('#sidebarContainer').hide();
+    }
+
+    function deleteCustomer(id, name) {
+        if (confirm('هل أنت متأكد من حذف العميل "' + name + '"؟')) {
+            const form = document.getElementById('deleteCustomerForm');
+            form.action = '{{ url("customers") }}/' + id;
+            form.submit();
+        }
+    }
 </script>
 @endsection

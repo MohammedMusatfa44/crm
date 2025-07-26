@@ -17,7 +17,7 @@ class CustomerController extends Controller
     {
         $customers = Customer::with(['subDepartment.department', 'assignedEmployee'])->get();
         $subDepartments = SubDepartment::with('department')->get();
-        $users = User::where('is_active', true)->get();
+        $users = User::whereIn('role', ['employee', 'admin'])->get();
         return view('customers.index', compact('customers', 'subDepartments', 'users'));
     }
 
@@ -93,12 +93,92 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-        $customer = Customer::with(['subDepartment.department', 'assignedEmployee', 'notes'])->findOrFail($id);
+        $customer = Customer::with(['subDepartment.department', 'assignedEmployee'])->findOrFail($id);
+        return response()->json($customer);
+    }
 
-        if (request()->wantsJson()) {
-            return response()->json($customer);
+    public function reports()
+    {
+        $customers = Customer::with(['subDepartment.department', 'assignedEmployee'])->get();
+
+        // Calculate statistics
+        $totalCustomers = $customers->count();
+        $newCustomers = $customers->where('status', 'new')->count();
+        $activeCustomers = $customers->whereIn('status', ['in_progress', 'follow_up'])->count();
+        $closedCustomers = $customers->where('status', 'closed')->count();
+
+        // Calculate status counts for reports
+        $statusCounts = [
+            'no_answer' => $customers->where('status', 'new')->count(),
+            'hot' => $customers->where('status', 'hot')->count(),
+            'western' => $customers->where('status', 'western')->count(),
+            'follow' => $customers->where('status', 'follow_up')->count(),
+            'deposits' => $customers->where('status', 'in_progress')->count(),
+            'not_interested' => 0,
+            'no_answer2' => 0,
+            'no_answer1' => 0,
+        ];
+
+        return view('customers.reports', compact('customers', 'totalCustomers', 'newCustomers', 'activeCustomers', 'closedCustomers', 'statusCounts'));
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'customer_ids' => 'required|array',
+            'customer_ids.*' => 'exists:customers,id',
+            'status' => 'required|in:new,in_progress,follow_up,western,hot,closed'
+        ]);
+
+        try {
+            $customerIds = $request->input('customer_ids');
+            $newStatus = $request->input('status');
+
+            // Update all selected customers
+            Customer::whereIn('id', $customerIds)->update([
+                'status' => $newStatus,
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث حالة ' . count($customerIds) . ' عميل بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث حالة العملاء'
+            ], 500);
         }
+    }
 
-        return view('customers.show', compact('customer'));
+    public function bulkAssign(Request $request)
+    {
+        $request->validate([
+            'customer_ids' => 'required|array',
+            'customer_ids.*' => 'exists:customers,id',
+            'assigned_employee_id' => 'required|exists:users,id'
+        ]);
+
+        try {
+            $customerIds = $request->input('customer_ids');
+            $assignedEmployeeId = $request->input('assigned_employee_id');
+
+            // Update all selected customers
+            Customer::whereIn('id', $customerIds)->update([
+                'assigned_employee_id' => $assignedEmployeeId,
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تخصيص ' . count($customerIds) . ' عميل للموظف بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تخصيص العملاء'
+            ], 500);
+        }
     }
 }

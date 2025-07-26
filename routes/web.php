@@ -27,13 +27,17 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/statistics', [App\Http\Controllers\DashboardController::class, 'statistics']);
     Route::get('/dashboard/reports', [App\Http\Controllers\DashboardController::class, 'reports']);
+    Route::get('/dashboard/sub-departments', [App\Http\Controllers\DashboardController::class, 'getSubDepartments']);
 
     // Customer routes
+    Route::get('customers/reports', [App\Http\Controllers\CustomerController::class, 'reports'])->name('customers.reports');
+    Route::get('customers/test', function() { return 'Test route works!'; })->name('customers.test');
     Route::resource('customers', App\Http\Controllers\CustomerController::class);
     Route::post('customers/import', [App\Http\Controllers\CustomerController::class, 'import'])->name('customers.import');
     Route::get('customers/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/assign', [App\Http\Controllers\CustomerController::class, 'assign']);
-    Route::post('customers/bulk-update', [App\Http\Controllers\CustomerController::class, 'bulkUpdate']);
+    Route::post('customers/bulk-update', [App\Http\Controllers\CustomerController::class, 'bulkUpdate'])->name('customers.bulk-update');
+    Route::post('customers/bulk-assign', [App\Http\Controllers\CustomerController::class, 'bulkAssign'])->name('customers.bulk-assign');
 
     // User routes
     Route::resource('users', App\Http\Controllers\UserController::class);
