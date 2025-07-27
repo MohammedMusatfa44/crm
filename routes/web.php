@@ -34,7 +34,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('customers/test', function() { return 'Test route works!'; })->name('customers.test');
     Route::resource('customers', App\Http\Controllers\CustomerController::class);
     Route::post('customers/import', [App\Http\Controllers\CustomerController::class, 'import'])->name('customers.import');
-    Route::get('customers/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
+    Route::post('customers/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/assign', [App\Http\Controllers\CustomerController::class, 'assign']);
     Route::post('customers/bulk-update', [App\Http\Controllers\CustomerController::class, 'bulkUpdate'])->name('customers.bulk-update');
     Route::post('customers/bulk-assign', [App\Http\Controllers\CustomerController::class, 'bulkAssign'])->name('customers.bulk-assign');

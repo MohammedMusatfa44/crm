@@ -86,9 +86,13 @@ class CustomerController extends Controller
         return back()->with('success', 'تم استيراد العملاء بنجاح');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new CustomerExport, 'customers.xlsx');
+        $customerIds = $request->input('customer_ids');
+        if ($customerIds && is_array($customerIds) && count($customerIds) > 0) {
+            return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\CustomerExport($customerIds), 'customers.xlsx');
+        }
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\CustomerExport, 'customers.xlsx');
     }
 
     public function show($id)

@@ -433,7 +433,7 @@
                         <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="bi bi-upload"></i> رفع إكسل
                         </button>
-                        <button class="btn btn-outline-success">
+                        <button class="btn btn-outline-success" id="exportExcelBtn">
                             <i class="bi bi-download"></i> استخراج البيانات
                         </button>
                         <button class="btn btn-outline-warning" id="bulkUpdateBtn" disabled>
@@ -1028,6 +1028,39 @@
                     alert('حدث خطأ أثناء تخصيص العملاء');
                 }
             });
+        });
+
+        // Export filtered data
+        $('#exportExcelBtn').on('click', function() {
+            var filteredData = table.rows({ search: 'applied' }).data();
+            var customerIds = [];
+            for (var i = 0; i < filteredData.length; i++) {
+                // The first column is the checkbox, the second is ac_number, so get the row's data-customer-id
+                var row = table.row(i, { search: 'applied' }).node();
+                if (row) {
+                    var customerId = $(row).data('customer-id');
+                    if (customerId) customerIds.push(customerId);
+                }
+            }
+            if (customerIds.length === 0) {
+                alert('لا يوجد عملاء لتصديرهم');
+                return;
+            }
+            // Create a form and submit it
+            var form = $('<form>', {
+                method: 'POST',
+                action: '{{ route('customers.export') }}'
+            });
+            form.append('@csrf');
+            customerIds.forEach(function(id) {
+                form.append($('<input>', {
+                    type: 'hidden',
+                    name: 'customer_ids[]',
+                    value: id
+                }));
+            });
+            $('body').append(form);
+            form.submit();
         });
     });
 
