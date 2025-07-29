@@ -8,10 +8,16 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
+use Illuminate\Support\Collection;
 
-class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
+class CustomerImportDetector implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows, WithEvents
 {
     protected $subDepartmentId;
+    protected $duplicates = [];
+    protected $newCustomers = [];
+    protected $allData = [];
 
     public function __construct($subDepartmentId = null)
     {
@@ -38,29 +44,7 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
         // Check if customer with this ac_number already exists
         $existingCustomer = Customer::where('ac_number', $acNumber)->first();
         
-        if ($existingCustomer) {
-            // Update existing customer with new data
-            $existingCustomer->update([
-                'full_name' => $fullName ?? $existingCustomer->full_name,
-                'mobile_number' => $mobileNumber ?? $existingCustomer->mobile_number,
-                'email' => $email ?? $existingCustomer->email,
-                'comment' => $comment ?? $existingCustomer->comment,
-                'status' => $status ?? $existingCustomer->status,
-                'sub_department_id' => $this->subDepartmentId ?? $existingCustomer->sub_department_id,
-                'complaint_reason' => $complaintReason ?? $existingCustomer->complaint_reason,
-                'nationality' => $nationality ?? $existingCustomer->nationality,
-                'city' => $city ?? $existingCustomer->city,
-                'contact_method' => $contactMethod ?? $existingCustomer->contact_method,
-                'contacted_other_party' => $contactedOtherParty ?? $existingCustomer->contacted_other_party,
-                'payment_methods' => $paymentMethods ?? $existingCustomer->payment_methods,
-                'lead_date' => $leadDate ?? $existingCustomer->lead_date,
-            ]);
-            
-            return null; // Don't create new record
-        }
-
-        // Create new customer
-        return new Customer([
+        $customerData = [
             'ac_number' => $acNumber,
             'full_name' => $fullName,
             'mobile_number' => $mobileNumber,
@@ -68,7 +52,7 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
             'comment' => $comment,
             'status' => $status,
             'sub_department_id' => $this->subDepartmentId,
-            'assigned_employee_id' => null, // Will be assigned later if needed
+            'assigned_employee_id' => null,
             'complaint_reason' => $complaintReason,
             'nationality' => $nationality,
             'city' => $city,
@@ -77,7 +61,25 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
             'contacted_other_party' => $contactedOtherParty,
             'payment_methods' => $paymentMethods,
             'lead_date' => $leadDate,
-        ]);
+        ];
+        
+        if ($existingCustomer) {
+            // Track duplicate for user decision
+            $this->duplicates[] = [
+                'ac_number' => $acNumber,
+                'existing_customer' => $existingCustomer,
+                'new_data' => $customerData,
+                'row_data' => $row
+            ];
+        } else {
+            // Track new customer
+            $this->newCustomers[] = $customerData;
+        }
+        
+        $this->allData[] = $customerData;
+        
+        // Don't create any models yet - just collect data
+        return null;
     }
 
     public function rules(): array
@@ -97,4 +99,46 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
             '*.lead_date' => 'nullable|date',
         ];
     }
-}
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function(AfterImport $event) {
+                // Debug: Log what we're storing
+                \Illuminate\Support\Facades\Log::info('CustomerImportDetector - Storing in session:', [
+                    'new_customers_count' => count($this->newCustomers),
+                    'duplicates_count' => count($this->duplicates),
+                    'new_customers_sample' => array_slice($this->newCustomers, 0, 2),
+                    'duplicates_sample' => array_slice($this->duplicates, 0, 2),
+                ]);
+                
+                // Store detection results in session for user decision
+                session([
+                    'import_detection' => [
+                        'new_customers' => $this->newCustomers,
+                        'duplicates' => $this->duplicates,
+                        'total_new' => count($this->newCustomers),
+                        'total_duplicates' => count($this->duplicates),
+                        'all_data' => $this->allData,
+                        'sub_department_id' => $this->subDepartmentId,
+                    ]
+                ]);
+            },
+        ];
+    }
+
+    public function getDuplicates()
+    {
+        return $this->duplicates;
+    }
+
+    public function getNewCustomers()
+    {
+        return $this->newCustomers;
+    }
+
+    public function getAllData()
+    {
+        return $this->allData;
+    }
+} 

@@ -8,10 +8,16 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
+use Illuminate\Support\Collection;
 
-class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
+class CustomerImportWithDuplicates implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows, WithEvents
 {
     protected $subDepartmentId;
+    protected $duplicates = [];
+    protected $created = [];
+    protected $updated = [];
 
     public function __construct($subDepartmentId = null)
     {
@@ -39,27 +45,41 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
         $existingCustomer = Customer::where('ac_number', $acNumber)->first();
         
         if ($existingCustomer) {
-            // Update existing customer with new data
-            $existingCustomer->update([
-                'full_name' => $fullName ?? $existingCustomer->full_name,
-                'mobile_number' => $mobileNumber ?? $existingCustomer->mobile_number,
-                'email' => $email ?? $existingCustomer->email,
-                'comment' => $comment ?? $existingCustomer->comment,
-                'status' => $status ?? $existingCustomer->status,
-                'sub_department_id' => $this->subDepartmentId ?? $existingCustomer->sub_department_id,
-                'complaint_reason' => $complaintReason ?? $existingCustomer->complaint_reason,
-                'nationality' => $nationality ?? $existingCustomer->nationality,
-                'city' => $city ?? $existingCustomer->city,
-                'contact_method' => $contactMethod ?? $existingCustomer->contact_method,
-                'contacted_other_party' => $contactedOtherParty ?? $existingCustomer->contacted_other_party,
-                'payment_methods' => $paymentMethods ?? $existingCustomer->payment_methods,
-                'lead_date' => $leadDate ?? $existingCustomer->lead_date,
-            ]);
+            // Track duplicate for reporting
+            $this->duplicates[] = [
+                'ac_number' => $acNumber,
+                'existing_name' => $existingCustomer->full_name,
+                'new_name' => $fullName,
+                'row_data' => $row
+            ];
+            
+            // Update existing customer with new data (only if new data is provided)
+            $updateData = [];
+            if ($fullName) $updateData['full_name'] = $fullName;
+            if ($mobileNumber) $updateData['mobile_number'] = $mobileNumber;
+            if ($email) $updateData['email'] = $email;
+            if ($comment) $updateData['comment'] = $comment;
+            if ($status) $updateData['status'] = $status;
+            if ($this->subDepartmentId) $updateData['sub_department_id'] = $this->subDepartmentId;
+            if ($complaintReason) $updateData['complaint_reason'] = $complaintReason;
+            if ($nationality) $updateData['nationality'] = $nationality;
+            if ($city) $updateData['city'] = $city;
+            if ($contactMethod) $updateData['contact_method'] = $contactMethod;
+            if ($contactedOtherParty !== null) $updateData['contacted_other_party'] = $contactedOtherParty;
+            if ($paymentMethods) $updateData['payment_methods'] = $paymentMethods;
+            if ($leadDate) $updateData['lead_date'] = $leadDate;
+            
+            if (!empty($updateData)) {
+                $existingCustomer->update($updateData);
+                $this->updated[] = $acNumber;
+            }
             
             return null; // Don't create new record
         }
 
         // Create new customer
+        $this->created[] = $acNumber;
+        
         return new Customer([
             'ac_number' => $acNumber,
             'full_name' => $fullName,
@@ -68,7 +88,7 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
             'comment' => $comment,
             'status' => $status,
             'sub_department_id' => $this->subDepartmentId,
-            'assigned_employee_id' => null, // Will be assigned later if needed
+            'assigned_employee_id' => null,
             'complaint_reason' => $complaintReason,
             'nationality' => $nationality,
             'city' => $city,
@@ -97,4 +117,37 @@ class CustomerImport implements ToModel, WithHeadingRow, WithValidation, SkipsEm
             '*.lead_date' => 'nullable|date',
         ];
     }
-}
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function(AfterImport $event) {
+                // Store import results in session for display
+                session([
+                    'import_results' => [
+                        'created' => count($this->created),
+                        'updated' => count($this->updated),
+                        'duplicates' => $this->duplicates,
+                        'created_list' => $this->created,
+                        'updated_list' => $this->updated,
+                    ]
+                ]);
+            },
+        ];
+    }
+
+    public function getDuplicates()
+    {
+        return $this->duplicates;
+    }
+
+    public function getCreated()
+    {
+        return $this->created;
+    }
+
+    public function getUpdated()
+    {
+        return $this->updated;
+    }
+} 

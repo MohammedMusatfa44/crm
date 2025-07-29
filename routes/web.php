@@ -34,6 +34,8 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('customers/test', function() { return 'Test route works!'; })->name('customers.test');
     Route::resource('customers', App\Http\Controllers\CustomerController::class);
     Route::post('customers/import', [App\Http\Controllers\CustomerController::class, 'import'])->name('customers.import');
+    Route::post('customers/handle-duplicates', [App\Http\Controllers\CustomerController::class, 'handleDuplicates'])->name('customers.handle-duplicates');
+    Route::get('customers/template', [App\Http\Controllers\CustomerController::class, 'template'])->name('customers.template');
     Route::post('customers/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/assign', [App\Http\Controllers\CustomerController::class, 'assign']);
     Route::post('customers/bulk-update', [App\Http\Controllers\CustomerController::class, 'bulkUpdate'])->name('customers.bulk-update');

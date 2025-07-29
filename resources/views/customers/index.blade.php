@@ -663,8 +663,26 @@
                 <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
+                        <label for="subDepartmentSelect" class="form-label">القسم الفرعي</label>
+                        <select class="form-select" id="subDepartmentSelect" name="sub_department_id" required>
+                            <option value="">اختر القسم الفرعي</option>
+                            @foreach($subDepartments as $subDepartment)
+                                <option value="{{ $subDepartment->id }}">
+                                    {{ $subDepartment->department->name }} - {{ $subDepartment->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">سيتم إضافة جميع العملاء المرفوعين إلى هذا القسم الفرعي</small>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">اختر ملف الإكسل</label>
                         <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
+                        <small class="form-text text-muted">يجب أن يحتوي الملف على الأعمدة: رقم الحساب (مطلوب)، الاسم الكامل، رقم الجوال، البريد الإلكتروني، التعليق، الحالة، سبب الشكوى، الجنسية، المدينة، طريقة التواصل، تواصل مع طرف آخر، طرق الدفع، تاريخ الريادة</small>
+                        <div class="mt-2">
+                            <a href="{{ route('customers.template') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download"></i> تحميل نموذج الإكسل
+                            </a>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">رفع</button>
                 </form>
@@ -749,6 +767,145 @@
     @csrf
     @method('DELETE')
 </form>
+
+<!-- Duplicate Detection Modal -->
+<div class="modal fade" id="duplicateDetectionModal" tabindex="-1" aria-labelledby="duplicateDetectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="duplicateDetectionModalLabel">
+                    @if(session('import_detection') && isset(session('import_detection')['total_duplicates']) && session('import_detection')['total_duplicates'] > 0)
+                        العملاء المكررين - اختر الإجراء المطلوب
+                    @else
+                        تأكيد استيراد العملاء الجدد
+                    @endif
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                @if(session('import_detection'))
+                    @php $detection = session('import_detection'); @endphp
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h4>{{ $detection['total_new'] ?? 0 }}</h4>
+                                    <p class="mb-0">عملاء جدد سيتم إضافتهم</p>
+                                </div>
+                            </div>
+                        </div>
+                        @if(isset($detection['total_duplicates']) && $detection['total_duplicates'] > 0)
+                            <div class="col-md-6">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h4>{{ $detection['total_duplicates'] ?? 0 }}</h4>
+                                        <p class="mb-0">عملاء مكررين - اختر الإجراء</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="col-md-6">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h4>0</h4>
+                                        <p class="mb-0">عملاء مكررين</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if(isset($detection['duplicates']) && count($detection['duplicates']) > 0)
+                        <form id="duplicateActionForm" action="{{ route('customers.handle-duplicates') }}" method="POST">
+                            @csrf
+                            @if(session('cache_key'))
+                                <input type="hidden" name="cache_key" value="{{ session('cache_key') }}">
+                            @endif
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>ملاحظة:</strong> العملاء غير المحددين سيتم تخطيهم تلقائياً
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="action" id="actionUpdate" value="update" checked>
+                                    <label class="btn btn-outline-warning" for="actionUpdate">
+                                        <i class="fas fa-edit"></i> تحديث العملاء المحددين
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="action" id="actionSkip" value="skip">
+                                    <label class="btn btn-outline-secondary" for="actionSkip">
+                                        <i class="fas fa-times"></i> تخطي العملاء المحددين
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" id="selectAllDuplicates" class="form-check-input">
+                                            </th>
+                                            <th>رقم الحساب</th>
+                                            <th>الاسم الموجود</th>
+                                            <th>رقم الجوال الموجود</th>
+                                            <th>الاسم الجديد</th>
+                                            <th>رقم الجوال الجديد</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($detection['duplicates'] as $index => $duplicate)
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="selected_duplicates[]" value="{{ $index }}" class="form-check-input duplicate-checkbox">
+                                                </td>
+                                                <td>{{ $duplicate['ac_number'] }}</td>
+                                                <td>{{ $duplicate['existing_customer']['full_name'] ?? 'غير محدد' }}</td>
+                                                <td>{{ $duplicate['existing_customer']['mobile_number'] ?? 'غير محدد' }}</td>
+                                                <td>{{ $duplicate['new_data']['full_name'] ?? 'غير محدد' }}</td>
+                                                <td>{{ $duplicate['new_data']['mobile_number'] ?? 'غير محدد' }}</td>
+                                                <td>
+                                                    <span class="badge bg-warning">مكرر</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </form>
+                    @else
+                        <!-- All new customers - simple confirmation -->
+                        <form id="duplicateActionForm" action="{{ route('customers.handle-duplicates') }}" method="POST">
+                            @csrf
+                            @if(session('cache_key'))
+                                <input type="hidden" name="cache_key" value="{{ session('cache_key') }}">
+                            @endif
+                            <input type="hidden" name="action" value="import_new">
+                            <input type="hidden" name="selected_duplicates" value="">
+                            
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>جميع العملاء جدد!</strong> سيتم إضافة {{ $detection['total_new'] ?? 0 }} عميل جديد إلى النظام.
+                            </div>
+                            
+                            <div class="text-center">
+                                <p class="text-muted">اضغط "تأكيد الإجراء" لإضافة جميع العملاء الجدد</p>
+                            </div>
+                        </form>
+                    @endif
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" form="duplicateActionForm" class="btn btn-primary" id="confirmActionBtn">
+                    <i class="fas fa-check"></i> تأكيد الإجراء
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -948,6 +1105,65 @@
                     alert('حدث خطأ أثناء تحديث حالة العملاء');
                 }
             });
+        });
+
+        // Show duplicate detection modal if there are duplicates
+        @if(session('import_detection'))
+            $('#duplicateDetectionModal').modal('show');
+        @endif
+
+        // Handle duplicate action form submission
+        $('#duplicateActionForm').on('submit', function(e) {
+            e.preventDefault();
+            console.log('Form submission started');
+            
+            var formData = $(this).serialize();
+            console.log('Form data:', formData);
+            
+            // Show loading state
+            $('#confirmActionBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...');
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    console.log('Success response:', response);
+                    $('#duplicateDetectionModal').modal('hide');
+                    location.reload(); // Refresh to show new data
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error:', xhr.responseText);
+                    alert('حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.');
+                    $('#confirmActionBtn').prop('disabled', false).html('<i class="fas fa-check"></i> تأكيد الإجراء');
+                }
+            });
+        });
+
+        // Duplicate selection functionality
+        $('#selectAllDuplicates').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            $('.duplicate-checkbox').prop('checked', isChecked);
+        });
+
+        // Fallback button click handler
+        $('#confirmActionBtn').on('click', function(e) {
+            console.log('Button clicked');
+            // The form submit handler should take care of this, but this is a fallback
+        });
+
+        $(document).on('change', '.duplicate-checkbox', function() {
+            // Update select all checkbox
+            var totalCheckboxes = $('.duplicate-checkbox').length;
+            var checkedCheckboxes = $('.duplicate-checkbox:checked').length;
+
+            if (checkedCheckboxes === 0) {
+                $('#selectAllDuplicates').prop('checked', false);
+            } else if (checkedCheckboxes === totalCheckboxes) {
+                $('#selectAllDuplicates').prop('checked', true);
+            } else {
+                $('#selectAllDuplicates').prop('checked', false);
+            }
         });
 
         function updateBulkButton() {
