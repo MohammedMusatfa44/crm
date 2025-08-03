@@ -10,18 +10,22 @@ use App\Models\SubDepartment;
 use App\Models\Notification;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Spatie\Permission\Traits\HasRoles;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         // Get filter parameters
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
 
-        // Base queries
-        $customerQuery = Customer::query();
-        $userQuery = User::query();
+        // Base queries with role-based filtering
+        $customerQuery = $this->getFilteredCustomerQuery($user);
+        $userQuery = $this->getFilteredUserQuery($user);
         $departmentQuery = Department::query();
         $subDepartmentQuery = SubDepartment::query();
 
@@ -49,10 +53,10 @@ class DashboardController extends Controller
         $subDepartments = $subDepartmentId ? SubDepartment::where('department_id', $departmentId)->get() : collect();
 
         // Get customer status counts for reports
-        $customerStatusCounts = $this->getCustomerStatusCounts($departmentId, $subDepartmentId);
+        $customerStatusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
 
         // Get chart data
-        $chartData = $this->getChartData($departmentId, $subDepartmentId);
+        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId);
 
         return view('dashboard', compact(
             'customerCount',
@@ -69,10 +73,50 @@ class DashboardController extends Controller
         ));
     }
 
-    private function getCustomerStatusCounts($departmentId = null, $subDepartmentId = null)
+    private function getFilteredCustomerQuery($user)
     {
-        // Start with a fresh query
         $query = Customer::query();
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all customers
+            return $query;
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only customers they created
+            return $query->where('created_by', $user->id);
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees only customers assigned to them
+            return $query->where('assigned_employee_id', $user->id);
+        } else {
+            // Default: no customers
+            return $query->where('id', 0); // This will return no results
+        }
+    }
+
+    private function getFilteredUserQuery($user)
+    {
+        $query = User::query();
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all users
+            return $query;
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only employees (not other admins or super_admins)
+            return $query->whereHas('roles', function($q) {
+                $q->where('name', 'employee');
+            });
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees no users
+            return $query->where('id', 0); // This will return no results
+        } else {
+            // Default: no users
+            return $query->where('id', 0); // This will return no results
+        }
+    }
+
+    private function getCustomerStatusCounts($user, $departmentId = null, $subDepartmentId = null)
+    {
+        // Start with a filtered query based on user role
+        $query = $this->getFilteredCustomerQuery($user);
 
         // Apply filters only if they are provided
         if ($departmentId) {
@@ -100,7 +144,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getChartData($departmentId = null, $subDepartmentId = null)
+    private function getChartData($user, $departmentId = null, $subDepartmentId = null)
     {
         // Get last 6 months
         $months = [];
@@ -113,9 +157,11 @@ class DashboardController extends Controller
             $date = Carbon::now()->subMonths($i);
             $months[] = $date->format('M');
 
-            // Customer data
-            $customerQuery = Customer::whereYear('created_at', $date->year)
-                                   ->whereMonth('created_at', $date->month);
+            // Customer data with role-based filtering
+            $customerQuery = $this->getFilteredCustomerQuery($user)
+                ->whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month);
+
             if ($departmentId) {
                 $customerQuery->whereHas('subDepartment', function($q) use ($departmentId) {
                     $q->where('department_id', $departmentId);
@@ -126,9 +172,11 @@ class DashboardController extends Controller
             }
             $customerData[] = $customerQuery->count();
 
-            // User data
-            $userData[] = User::whereYear('created_at', $date->year)
-                             ->whereMonth('created_at', $date->month)->count();
+            // User data with role-based filtering
+            $userQuery = $this->getFilteredUserQuery($user)
+                ->whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month);
+            $userData[] = $userQuery->count();
 
             // Department data
             $departmentData[] = Department::whereYear('created_at', $date->year)
@@ -161,11 +209,14 @@ class DashboardController extends Controller
 
     public function statistics(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
 
-        $chartData = $this->getChartData($departmentId, $subDepartmentId);
-        $statusCounts = $this->getCustomerStatusCounts($departmentId, $subDepartmentId);
+        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId);
+        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
 
         return response()->json([
             'chartData' => $chartData,
@@ -175,10 +226,13 @@ class DashboardController extends Controller
 
     public function reports(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
 
-        $statusCounts = $this->getCustomerStatusCounts($departmentId, $subDepartmentId);
+        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
 
         return response()->json($statusCounts);
     }

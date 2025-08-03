@@ -14,6 +14,15 @@ class SupportTicketController extends Controller
         return view('support.index', compact('tickets'));
     }
 
+    public function show($id)
+    {
+        $ticket = SupportTicket::with('user')->findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'ticket' => $ticket
+        ]);
+    }
+
     public function create()
     {
         return view('support.create');

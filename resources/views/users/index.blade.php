@@ -165,16 +165,20 @@
         color: #155724;
     }
     .btn-action {
-        padding: 0.4rem 0.8rem;
+        padding: 0.5rem 1rem;
         border-radius: 0.6rem;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         font-weight: 500;
-        margin: 0.1rem;
+        margin: 0.2rem;
         border: none;
         transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+        min-width: 80px;
     }
     .btn-action:hover {
         transform: translateY(-1px);
+        text-decoration: none;
     }
     .btn-edit {
         background: #007bff;
@@ -182,6 +186,7 @@
     }
     .btn-edit:hover {
         background: #0056b3;
+        color: #fff;
     }
     .btn-delete {
         background: #dc3545;
@@ -189,6 +194,7 @@
     }
     .btn-delete:hover {
         background: #c82333;
+        color: #fff;
     }
     .btn-toggle {
         background: #ffc107;
@@ -196,6 +202,15 @@
     }
     .btn-toggle:hover {
         background: #e0a800;
+        color: #212529;
+    }
+    .btn-view {
+        background: #28a745;
+        color: #fff;
+    }
+    .btn-view:hover {
+        background: #218838;
+        color: #fff;
     }
 
     /* Responsive improvements */
@@ -334,9 +349,11 @@
                 </div>
                 <div class="col-md-6">
                     <div class="top-actions">
+                        @can('users.create_employee')
                         <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                            <i class="fas fa-plus"></i> إضافة مستخدم جديد
+                            إضافة مستخدم جديد
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -347,19 +364,19 @@
             <div class="col-md-3">
                 <div class="stat-card super-admin">
                     <div class="stat-label">مدير عام</div>
-                    <div class="stat-value">{{ $users->where('role', 'super_admin')->count() }}</div>
+                    <div class="stat-value">{{ $users->filter(function($user) { return $user->roles->first() && $user->roles->first()->name == 'super_admin'; })->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card admin">
                     <div class="stat-label">مدير</div>
-                    <div class="stat-value">{{ $users->where('role', 'admin')->count() }}</div>
+                    <div class="stat-value">{{ $users->filter(function($user) { return $user->roles->first() && $user->roles->first()->name == 'admin'; })->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card employee">
                     <div class="stat-label">موظف</div>
-                    <div class="stat-value">{{ $users->where('role', 'employee')->count() }}</div>
+                    <div class="stat-value">{{ $users->filter(function($user) { return $user->roles->first() && $user->roles->first()->name == 'employee'; })->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -373,7 +390,7 @@
         <!-- Users Table -->
         <div class="modern-table">
             <div class="table-header">
-                <i class="fas fa-users"></i> قائمة المستخدمين
+                قائمة المستخدمين
             </div>
             <div class="table-responsive">
                 <table id="usersTable" class="table table-hover">
@@ -406,9 +423,13 @@
                                 </td>
                                 <td>{{ $user->email }}</td>
                                 <td>
-                                    @if($user->role == 'super_admin')
+                                    @php
+                                        $userRole = $user->roles->first();
+                                        $roleName = $userRole ? $userRole->name : 'employee';
+                                    @endphp
+                                    @if($roleName == 'super_admin')
                                         <span class="role-badge super-admin">مدير عام</span>
-                                    @elseif($user->role == 'admin')
+                                    @elseif($roleName == 'admin')
                                         <span class="role-badge admin">مدير</span>
                                     @else
                                         <span class="role-badge employee">موظف</span>
@@ -436,15 +457,26 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <button class="btn btn-action btn-edit" title="تعديل">
-                                        <i class="fas fa-edit"></i>
+                                    @can('users.view')
+                                    <a href="{{ route('users.show', $user->id) }}" class="btn btn-action btn-view" title="عرض">
+                                        عرض
+                                    </a>
+                                    @endcan
+                                    @can('users.edit')
+                                    <a href="{{ route('users.edit', $user->id) }}" class="btn btn-action btn-edit" title="تعديل">
+                                        تعديل
+                                    </a>
+                                    @endcan
+                                    @can('users.edit')
+                                    <button class="btn btn-action btn-toggle" title="تغيير الحالة" onclick="toggleUserStatus({{ $user->id }})">
+                                        تغيير الحالة
                                     </button>
-                                    <button class="btn btn-action btn-toggle" title="تغيير الحالة">
-                                        <i class="fas fa-toggle-on"></i>
+                                    @endcan
+                                    @can('users.delete')
+                                    <button class="btn btn-action btn-delete" title="حذف" onclick="deleteUser({{ $user->id }})">
+                                        حذف
                                     </button>
-                                    <button class="btn btn-action btn-delete" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach
@@ -464,30 +496,37 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form id="addUserForm">
+                    @csrf
                     <div class="mb-3">
                         <label class="form-label">الاسم</label>
-                        <input type="text" class="form-control">
+                        <input type="text" class="form-control" name="name" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">البريد الإلكتروني</label>
-                        <input type="email" class="form-control">
+                        <input type="email" class="form-control" name="email" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">الدور</label>
-                        <select class="form-select">
-                            <option value="super_admin">مدير عام</option>
+                        <select class="form-select" name="role" required>
+                            @if(auth()->user()->hasRole('super_admin'))
+                                <option value="super_admin">مدير عام</option>
+                            @endif
                             <option value="admin">مدير</option>
                             <option value="employee">موظف</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">رقم الجوال</label>
-                        <input type="text" class="form-control">
+                        <input type="text" class="form-control" name="phone">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">كلمة المرور</label>
-                        <input type="password" class="form-control">
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تأكيد كلمة المرور</label>
+                        <input type="password" class="form-control" name="password_confirmation" required>
                     </div>
                     <button type="submit" class="btn btn-success w-100">حفظ</button>
                 </form>
@@ -498,6 +537,7 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
     $('#usersTable').DataTable({
@@ -515,6 +555,103 @@ $(document).ready(function() {
             // Remove individual column search
         }
     });
+
+    // Add user form submission
+    $('#addUserForm').on('submit', function(e) {
+        e.preventDefault();
+
+        var formData = $(this).serialize();
+
+        $.ajax({
+            url: '{{ route("users.store") }}',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم بنجاح',
+                        text: response.message,
+                        confirmButtonText: 'حسناً'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: response.message,
+                        confirmButtonText: 'حسناً'
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error details:', xhr.responseText);
+                var errorMessage = 'حدث خطأ أثناء إضافة المستخدم';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: errorMessage,
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        });
+    });
 });
+
+// Function to toggle user status
+function toggleUserStatus(userId) {
+    if (confirm('هل أنت متأكد من تغيير حالة هذا المستخدم؟')) {
+        $.ajax({
+            url: `/users/${userId}/toggle-status`,
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('تم تغيير حالة المستخدم بنجاح');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    toastr.error('حدث خطأ أثناء تغيير حالة المستخدم');
+                }
+            },
+            error: function() {
+                toastr.error('حدث خطأ أثناء تغيير حالة المستخدم');
+            }
+        });
+    }
+}
+
+// Function to delete user
+function deleteUser(userId) {
+    if (confirm('هل أنت متأكد من حذف هذا المستخدم؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+        $.ajax({
+            url: `/users/${userId}`,
+            type: 'DELETE',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('تم حذف المستخدم بنجاح');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    toastr.error('حدث خطأ أثناء حذف المستخدم');
+                }
+            },
+            error: function() {
+                toastr.error('حدث خطأ أثناء حذف المستخدم');
+            }
+        });
+    }
+}
 </script>
 @endsection

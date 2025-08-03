@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Department;
+use App\Models\Customer;
+use Spatie\Permission\Traits\HasRoles;
 
 class DepartmentController extends Controller
 {
@@ -56,7 +58,46 @@ class DepartmentController extends Controller
 
     public function show($id)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $department = Department::with('subDepartments')->findOrFail($id);
-        return view('departments.show', compact('department'));
+
+        // Filter customers based on user role
+        $customersQuery = Customer::whereHas('subDepartment', function($query) use ($id) {
+            $query->where('department_id', $id);
+        })->with(['assignedEmployee', 'createdBy']);
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all customers
+            $customers = $customersQuery->get();
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only customers they created
+            $customers = $customersQuery->where('created_by', $user->id)->get();
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees only customers assigned to them
+            $customers = $customersQuery->where('assigned_employee_id', $user->id)->get();
+        } else {
+            // Default: no customers
+            $customers = collect();
+        }
+
+        // Calculate filtered customer counts for each sub-department
+        $subDepartmentCustomerCounts = [];
+        foreach ($department->subDepartments as $subDepartment) {
+            $subCustomersQuery = Customer::where('sub_department_id', $subDepartment->id);
+
+            if ($user->hasRole('super_admin')) {
+                $subDepartmentCustomerCounts[$subDepartment->id] = $subCustomersQuery->count();
+            } elseif ($user->hasRole('admin')) {
+                $subDepartmentCustomerCounts[$subDepartment->id] = $subCustomersQuery->where('created_by', $user->id)->count();
+            } elseif ($user->hasRole('employee')) {
+                $subDepartmentCustomerCounts[$subDepartment->id] = $subCustomersQuery->where('assigned_employee_id', $user->id)->count();
+            } else {
+                $subDepartmentCustomerCounts[$subDepartment->id] = 0;
+            }
+        }
+
+        return view('departments.show', compact('department', 'customers', 'subDepartmentCustomerCounts'));
     }
 }

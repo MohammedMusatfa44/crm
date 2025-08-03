@@ -26,6 +26,7 @@ class Customer extends Model
         'contacted_other_party',
         'payment_methods',
         'lead_date',
+        'created_by',
     ];
 
     protected $casts = [
@@ -44,6 +45,11 @@ class Customer extends Model
     public function assignedEmployee()
     {
         return $this->belongsTo(User::class, 'assigned_employee_id');
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function notes()

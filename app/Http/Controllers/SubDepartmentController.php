@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\SubDepartment;
 use App\Models\Department;
+use App\Models\Customer;
+use Spatie\Permission\Traits\HasRoles;
 
 class SubDepartmentController extends Controller
 {
@@ -62,7 +64,29 @@ class SubDepartmentController extends Controller
 
     public function show($id)
     {
-        $subDepartment = SubDepartment::with(['department', 'customers'])->findOrFail($id);
-        return view('sub_departments.show', compact('subDepartment'));
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $subDepartment = SubDepartment::with('department')->findOrFail($id);
+
+        // Filter customers based on user role
+        $customersQuery = Customer::where('sub_department_id', $id)
+            ->with(['assignedEmployee', 'createdBy']);
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all customers
+            $customers = $customersQuery->get();
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only customers they created
+            $customers = $customersQuery->where('created_by', $user->id)->get();
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees only customers assigned to them
+            $customers = $customersQuery->where('assigned_employee_id', $user->id)->get();
+        } else {
+            // Default: no customers
+            $customers = collect();
+        }
+
+        return view('sub_departments.show', compact('subDepartment', 'customers'));
     }
 }

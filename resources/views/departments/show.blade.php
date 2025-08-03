@@ -182,19 +182,19 @@
             <div class="col-md-3">
                 <div class="stat-card customers">
                     <div class="stat-label">إجمالي العملاء</div>
-                    <div class="stat-value">{{ $department->customers->count() }}</div>
+                    <div class="stat-value">{{ $customers->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card active">
                     <div class="stat-label">الحالات النشطة</div>
-                    <div class="stat-value">{{ $department->customers->where('status', 'in_progress')->count() }}</div>
+                    <div class="stat-value">{{ $customers->where('status', 'in_progress')->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card closed">
                     <div class="stat-label">الحالات المغلقة</div>
-                    <div class="stat-value">{{ $department->customers->where('status', 'closed')->count() }}</div>
+                    <div class="stat-value">{{ $customers->where('status', 'closed')->count() }}</div>
                 </div>
             </div>
         </div>
@@ -209,7 +209,7 @@
                             <div class="sub-department-card">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <h5 class="mb-0">{{ $sub->name }}</h5>
-                                    <span class="badge bg-primary">{{ $sub->customers->count() }} عميل</span>
+                                    <span class="badge bg-primary">{{ $subDepartmentCustomerCounts[$sub->id] ?? 0 }} عميل</span>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <a href="{{ route('sub-departments.show', $sub->id) }}" class="btn btn-sm btn-outline-primary">عرض</a>

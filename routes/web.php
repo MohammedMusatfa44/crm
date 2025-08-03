@@ -61,6 +61,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::resource('notifications', App\Http\Controllers\NotificationController::class);
     Route::post('notifications/{notification}/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
     Route::get('notifications/real-time', [App\Http\Controllers\NotificationController::class, 'realTime']);
+    Route::get('notifications/triggered', [App\Http\Controllers\NotificationController::class, 'getTriggeredNotifications']);
 
     // Support routes
     Route::resource('support-tickets', App\Http\Controllers\SupportTicketController::class);
@@ -68,9 +69,12 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::post('support-tickets/{ticket}/change-status', [App\Http\Controllers\SupportTicketController::class, 'changeStatus']);
 
     // Permission routes
-    Route::resource('permissions', App\Http\Controllers\PermissionController::class);
-    Route::post('permissions/{user}/assign', [App\Http\Controllers\PermissionController::class, 'assign']);
-    Route::post('permissions/manage', [App\Http\Controllers\PermissionController::class, 'manage']);
+    Route::get('permissions', [App\Http\Controllers\PermissionController::class, 'index'])->name('permissions.index');
+    Route::post('permissions/assign', [App\Http\Controllers\PermissionController::class, 'assign'])->name('permissions.assign');
+    Route::post('permissions/manage', [App\Http\Controllers\PermissionController::class, 'manage'])->name('permissions.manage');
+    Route::post('permissions/roles', [App\Http\Controllers\PermissionController::class, 'storeRole'])->name('permissions.roles.store');
+    Route::post('permissions/roles/update', [App\Http\Controllers\PermissionController::class, 'updateRole'])->name('permissions.roles.update');
+    Route::get('permissions/roles/{role}/permissions', [App\Http\Controllers\PermissionController::class, 'getRolePermissions'])->name('permissions.roles.permissions');
 
     // Reporting routes
     Route::get('reports/user-performance', [App\Http\Controllers\ReportsController::class, 'userPerformance']);

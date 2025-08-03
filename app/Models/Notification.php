@@ -9,6 +9,22 @@ class Notification extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'title',
+        'message',
+        'customer_id',
+        'user_id',
+        'remind_at',
+        'is_read',
+        'is_triggered',
+    ];
+
+    protected $casts = [
+        'remind_at' => 'datetime',
+        'is_read' => 'boolean',
+        'is_triggered' => 'boolean',
+    ];
+
     // Relationships
     public function customer()
     {

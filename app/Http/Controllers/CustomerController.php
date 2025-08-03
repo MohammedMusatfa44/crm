@@ -10,14 +10,50 @@ use App\Events\CustomerAdded;
 use App\Models\Customer;
 use App\Models\SubDepartment;
 use App\Models\User;
+use Spatie\Permission\Traits\HasRoles;
 
 class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::with(['subDepartment.department', 'assignedEmployee'])->get();
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Filter customers based on user role
+        $customersQuery = Customer::with(['subDepartment.department', 'assignedEmployee', 'createdBy']);
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all customers
+            $customers = $customersQuery->get();
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only customers they created
+            $customers = $customersQuery->where('created_by', $user->id)->get();
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees only customers assigned to them
+            $customers = $customersQuery->where('assigned_employee_id', $user->id)->get();
+        } else {
+            // Default: no customers
+            $customers = collect();
+        }
+
         $subDepartments = SubDepartment::with('department')->get();
-        $users = User::whereIn('role', ['employee', 'admin'])->get();
+
+        // Filter users based on role
+        if ($user->hasRole('super_admin')) {
+            // Super Admin can see all employees and admins
+            $users = User::whereHas('roles', function($query) {
+                $query->whereIn('name', ['employee', 'admin']);
+            })->get();
+        } elseif ($user->hasRole('admin')) {
+            // Admin can only see employees (not other admins)
+            $users = User::whereHas('roles', function($query) {
+                $query->where('name', 'employee');
+            })->get();
+        } else {
+            // Employee sees no users for assignment
+            $users = collect();
+        }
+
         return view('customers.index', compact('customers', 'subDepartments', 'users'));
     }
 
@@ -35,6 +71,10 @@ class CustomerController extends Controller
             'email' => 'nullable|email',
             'status' => 'required',
         ]);
+
+        // Add the created_by field
+        $validated['created_by'] = auth()->id();
+
         $customer = Customer::create($validated);
         event(new CustomerAdded($customer));
         return redirect()->route('customers.index')->with('success', 'تم إضافة العميل بنجاح');
@@ -42,15 +82,68 @@ class CustomerController extends Controller
 
     public function edit($id)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
         $customer = Customer::findOrFail($id);
+
+        // Check if user has permission to edit this customer
+        if ($user->hasRole('super_admin')) {
+            // Super Admin can edit any customer
+        } elseif ($user->hasRole('admin')) {
+            // Admin can only edit customers they created
+            if ($customer->created_by !== $user->id) {
+                abort(403, 'ليس لديك صلاحية لتعديل هذا العميل');
+            }
+        } elseif ($user->hasRole('employee')) {
+            // Employee can only edit customers assigned to them
+            if ($customer->assigned_employee_id !== $user->id) {
+                abort(403, 'ليس لديك صلاحية لتعديل هذا العميل');
+            }
+        } else {
+            abort(403, 'ليس لديك صلاحية لتعديل العملاء');
+        }
+
         $subDepartments = SubDepartment::with('department')->get();
-        $users = User::where('is_active', true)->get();
+
+        // Filter users based on role
+        if ($user->hasRole('super_admin')) {
+            $users = User::whereHas('roles', function($query) {
+                $query->whereIn('name', ['employee', 'admin']);
+            })->get();
+        } elseif ($user->hasRole('admin')) {
+            $users = User::whereHas('roles', function($query) {
+                $query->where('name', 'employee');
+            })->get();
+        } else {
+            $users = collect();
+        }
+
         return view('customers.edit', compact('customer', 'subDepartments', 'users'));
     }
 
     public function update(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
         $customer = Customer::findOrFail($id);
+
+        // Check if user has permission to update this customer
+        if ($user->hasRole('super_admin')) {
+            // Super Admin can update any customer
+        } elseif ($user->hasRole('admin')) {
+            // Admin can only update customers they created
+            if ($customer->created_by !== $user->id) {
+                abort(403, 'ليس لديك صلاحية لتعديل هذا العميل');
+            }
+        } elseif ($user->hasRole('employee')) {
+            // Employee can only update customers assigned to them
+            if ($customer->assigned_employee_id !== $user->id) {
+                abort(403, 'ليس لديك صلاحية لتعديل هذا العميل');
+            }
+        } else {
+            abort(403, 'ليس لديك صلاحية لتعديل العملاء');
+        }
+
         $validated = $request->validate([
             'ac_number' => 'required|unique:customers,ac_number,' . $customer->id,
             'full_name' => 'required|string',
@@ -74,7 +167,25 @@ class CustomerController extends Controller
 
     public function destroy($id)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
         $customer = Customer::findOrFail($id);
+
+        // Check if user has permission to delete this customer
+        if ($user->hasRole('super_admin')) {
+            // Super Admin can delete any customer
+        } elseif ($user->hasRole('admin')) {
+            // Admin can only delete customers they created
+            if ($customer->created_by !== $user->id) {
+                abort(403, 'ليس لديك صلاحية لحذف هذا العميل');
+            }
+        } elseif ($user->hasRole('employee')) {
+            // Employee cannot delete customers
+            abort(403, 'ليس لديك صلاحية لحذف العملاء');
+        } else {
+            abort(403, 'ليس لديك صلاحية لحذف العملاء');
+        }
+
         $customer->delete();
         return redirect()->route('customers.index')->with('success', 'تم حذف العميل بنجاح');
     }
@@ -85,7 +196,7 @@ class CustomerController extends Controller
             'file' => 'required|mimes:xlsx,xls',
             'sub_department_id' => 'required|exists:sub_departments,id'
         ]);
-        
+
         // First, detect duplicates without importing
         try {
             Excel::import(new CustomerImportDetector($request->sub_department_id), $request->file('file'));
@@ -93,10 +204,10 @@ class CustomerController extends Controller
             \Illuminate\Support\Facades\Log::error('Import error: ' . $e->getMessage());
             return back()->with('error', 'حدث خطأ أثناء قراءة الملف: ' . $e->getMessage());
         }
-        
+
         // Get detection results
         $detectionResults = session('import_detection', []);
-        
+
         // Debug: Log detection results
         \Illuminate\Support\Facades\Log::info('Detection results after import:', [
             'total_new' => $detectionResults['total_new'] ?? 'not set',
@@ -106,11 +217,11 @@ class CustomerController extends Controller
             'session_keys' => array_keys($detectionResults),
             'session_id' => session()->getId()
         ]);
-        
+
         // Always store data in cache for consistent access
         $cacheKey = 'import_detection_' . auth()->id() . '_' . time();
         \Illuminate\Support\Facades\Cache::put($cacheKey, $detectionResults, 300); // 5 minutes
-        
+
         if (isset($detectionResults['total_duplicates']) && $detectionResults['total_duplicates'] > 0) {
             // Show duplicates for user decision
             return back()->with('warning', "تم العثور على {$detectionResults['total_duplicates']} عميل مكرر. يرجى مراجعة القائمة أدناه واختيار الإجراء المطلوب.")->with('import_detection', $detectionResults)->with('cache_key', $cacheKey);
@@ -133,7 +244,7 @@ class CustomerController extends Controller
     {
         $headers = [
             'ac_number',
-            'full_name', 
+            'full_name',
             'mobile_number',
             'email',
             'comment',
@@ -146,7 +257,7 @@ class CustomerController extends Controller
             'payment_methods',
             'lead_date'
         ];
-        
+
         $sampleData = [
             [
                 'CUST001',
@@ -164,9 +275,9 @@ class CustomerController extends Controller
                 '2024-01-15'
             ]
         ];
-        
+
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\CustomerTemplateExport($headers, $sampleData), 
+            new \App\Exports\CustomerTemplateExport($headers, $sampleData),
             'customer_template.xlsx'
         );
     }
@@ -176,12 +287,14 @@ class CustomerController extends Controller
         // Import new customers
         $newCustomers = $detectionResults['new_customers'] ?? [];
         $created = 0;
-        
+
         foreach ($newCustomers as $customerData) {
+            // Add created_by field for imported customers
+            $customerData['created_by'] = auth()->id();
             Customer::create($customerData);
             $created++;
         }
-        
+
         $message = "تم استيراد العملاء بنجاح. تم إنشاء {$created} عميل جديد.";
         return back()->with('success', $message);
     }
@@ -190,11 +303,11 @@ class CustomerController extends Controller
     {
         $action = $request->input('action'); // 'update', 'skip', or 'import_new'
         $selectedDuplicates = $request->input('selected_duplicates', []);
-        
+
         // Try to get data from cache first, then session as fallback
         $cacheKey = $request->input('cache_key') ?? session('cache_key');
         $detectionResults = [];
-        
+
         if ($cacheKey && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
             $detectionResults = \Illuminate\Support\Facades\Cache::get($cacheKey);
             \Illuminate\Support\Facades\Log::info('Using cache data for import detection');
@@ -202,15 +315,15 @@ class CustomerController extends Controller
             $detectionResults = session('import_detection', []);
             \Illuminate\Support\Facades\Log::info('Using session data for import detection');
         }
-        
+
         // Debug: Log session data (commented out for production)
         // \Illuminate\Support\Facades\Log::info('Import detection session data:', $detectionResults);
         // \Illuminate\Support\Facades\Log::info('Selected duplicates:', $selectedDuplicates);
         // \Illuminate\Support\Facades\Log::info('Action:', [$action]);
-        
+
         $updated = 0;
         $skipped = 0;
-        
+
         // Handle different actions
         if ($action === 'import_new') {
             // All customers are new - just import them
@@ -245,11 +358,11 @@ class CustomerController extends Controller
                 }
             }
         }
-        
+
         // Also import new customers
         $newCustomers = $detectionResults['new_customers'] ?? [];
         $created = 0;
-        
+
         // Debug: Log new customers data
         \Illuminate\Support\Facades\Log::info('New customers to import:', [
             'count' => count($newCustomers),
@@ -257,16 +370,18 @@ class CustomerController extends Controller
             'session_keys' => array_keys($detectionResults),
             'session_exists' => session()->has('import_detection')
         ]);
-        
+
         foreach ($newCustomers as $customerData) {
             try {
+                // Add created_by field for imported customers
+                $customerData['created_by'] = auth()->id();
                 Customer::create($customerData);
                 $created++;
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Error creating customer: ' . $e->getMessage(), $customerData);
             }
         }
-        
+
         if ($action === 'import_new') {
             $message = "تم استيراد العملاء بنجاح. تم إنشاء {$created} عميل جديد.";
         } else {
@@ -281,18 +396,18 @@ class CustomerController extends Controller
                 $message .= "تم تخطي {$skipped} عميل مكرر (بما في ذلك العملاء غير المحددين). ";
             }
         }
-        
+
         // If no session data was found, show error
         if (empty($detectionResults)) {
             return back()->with('error', 'لم يتم العثور على بيانات الاستيراد. يرجى المحاولة مرة أخرى.');
         }
-        
+
         // Clear the detection session and cache after processing
         session()->forget('import_detection');
         if ($cacheKey) {
             \Illuminate\Support\Facades\Cache::forget($cacheKey);
         }
-        
+
         return back()->with('success', $message);
     }
 
@@ -304,7 +419,25 @@ class CustomerController extends Controller
 
     public function reports()
     {
-        $customers = Customer::with(['subDepartment.department', 'assignedEmployee'])->get();
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Filter customers based on user role
+        $customersQuery = Customer::with(['subDepartment.department', 'assignedEmployee']);
+
+        if ($user->hasRole('super_admin')) {
+            // Super Admin sees all customers
+            $customers = $customersQuery->get();
+        } elseif ($user->hasRole('admin')) {
+            // Admin sees only customers they created
+            $customers = $customersQuery->where('created_by', $user->id)->get();
+        } elseif ($user->hasRole('employee')) {
+            // Employee sees only customers assigned to them
+            $customers = $customersQuery->where('assigned_employee_id', $user->id)->get();
+        } else {
+            // Default: no customers
+            $customers = collect();
+        }
 
         // Calculate statistics
         $totalCustomers = $customers->count();
@@ -329,6 +462,9 @@ class CustomerController extends Controller
 
     public function bulkUpdate(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $request->validate([
             'customer_ids' => 'required|array',
             'customer_ids.*' => 'exists:customers,id',
@@ -339,15 +475,33 @@ class CustomerController extends Controller
             $customerIds = $request->input('customer_ids');
             $newStatus = $request->input('status');
 
-            // Update all selected customers
-            Customer::whereIn('id', $customerIds)->update([
+            // Filter customers based on user role
+            $customersQuery = Customer::whereIn('id', $customerIds);
+
+            if ($user->hasRole('super_admin')) {
+                // Super Admin can update any customer
+            } elseif ($user->hasRole('admin')) {
+                // Admin can only update customers they created
+                $customersQuery = $customersQuery->where('created_by', $user->id);
+            } elseif ($user->hasRole('employee')) {
+                // Employee can only update customers assigned to them
+                $customersQuery = $customersQuery->where('assigned_employee_id', $user->id);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لتحديث العملاء'
+                ], 403);
+            }
+
+            // Update filtered customers
+            $updatedCount = $customersQuery->update([
                 'status' => $newStatus,
                 'updated_at' => now()
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث حالة ' . count($customerIds) . ' عميل بنجاح'
+                'message' => 'تم تحديث حالة ' . $updatedCount . ' عميل بنجاح'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -359,6 +513,9 @@ class CustomerController extends Controller
 
     public function bulkAssign(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
         $request->validate([
             'customer_ids' => 'required|array',
             'customer_ids.*' => 'exists:customers,id',
@@ -369,15 +526,36 @@ class CustomerController extends Controller
             $customerIds = $request->input('customer_ids');
             $assignedEmployeeId = $request->input('assigned_employee_id');
 
-            // Update all selected customers
-            Customer::whereIn('id', $customerIds)->update([
+            // Filter customers based on user role
+            $customersQuery = Customer::whereIn('id', $customerIds);
+
+            if ($user->hasRole('super_admin')) {
+                // Super Admin can assign any customer
+            } elseif ($user->hasRole('admin')) {
+                // Admin can only assign customers they created
+                $customersQuery = $customersQuery->where('created_by', $user->id);
+            } elseif ($user->hasRole('employee')) {
+                // Employee cannot assign customers
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لتخصيص العملاء'
+                ], 403);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لتخصيص العملاء'
+                ], 403);
+            }
+
+            // Update filtered customers
+            $updatedCount = $customersQuery->update([
                 'assigned_employee_id' => $assignedEmployeeId,
                 'updated_at' => now()
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تخصيص ' . count($customerIds) . ' عميل للموظف بنجاح'
+                'message' => 'تم تخصيص ' . $updatedCount . ' عميل بنجاح'
             ]);
         } catch (\Exception $e) {
             return response()->json([

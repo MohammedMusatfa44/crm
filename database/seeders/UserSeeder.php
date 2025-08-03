@@ -5,67 +5,52 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
-    public function run()
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
     {
-        // Create Super Admin
-        $superAdmin = User::create([
-            'name' => 'مدير النظام',
-            'email' => 'admin@crm.com',
-            'password' => Hash::make('123456'),
-            'role' => 'super_admin',
-            'is_active' => true,
-            'phone' => '0500000000',
-        ]);
-
-        // Create Admin users
-        $admins = [
-            ['name' => 'أحمد محمد', 'email' => 'ahmed@crm.com', 'phone' => '0500000001'],
-            ['name' => 'سارة علي', 'email' => 'sara@crm.com', 'phone' => '0500000002'],
-            ['name' => 'محمد حسن', 'email' => 'mohamed@crm.com', 'phone' => '0500000003'],
-        ];
-
-        foreach ($admins as $admin) {
-            User::create([
-                'name' => $admin['name'],
-                'email' => $admin['email'],
+        // Create or update Super Admin
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'admin@crm.com'],
+            [
+                'name' => 'مدير النظام',
                 'password' => Hash::make('123456'),
-                'role' => 'admin',
+                'phone' => '0501234567',
                 'is_active' => true,
-                'phone' => $admin['phone'],
-            ]);
+            ]
+        );
+
+        // Create or update Admin
+        $admin = User::firstOrCreate(
+            ['email' => 'manager@crm.com'],
+            [
+                'name' => 'مدير',
+                'password' => Hash::make('123456'),
+                'phone' => '0501234568',
+                'is_active' => true,
+            ]
+        );
+
+        // Get roles
+        $superAdminRole = Role::where('name', 'super_admin')->first();
+        $adminRole = Role::where('name', 'admin')->first();
+
+        // Clear existing roles and assign new ones
+        if ($superAdminRole) {
+            $superAdmin->syncRoles([$superAdminRole->name]);
         }
 
-        // Create Employee users
-        $employees = [
-            ['name' => 'علي أحمد', 'email' => 'ali@crm.com', 'phone' => '0500000004'],
-            ['name' => 'فاطمة محمد', 'email' => 'fatima@crm.com', 'phone' => '0500000005'],
-            ['name' => 'حسن علي', 'email' => 'hassan@crm.com', 'phone' => '0500000006'],
-            ['name' => 'مريم أحمد', 'email' => 'maryam@crm.com', 'phone' => '0500000007'],
-            ['name' => 'عبدالله محمد', 'email' => 'abdullah@crm.com', 'phone' => '0500000008'],
-            ['name' => 'زينب علي', 'email' => 'zainab@crm.com', 'phone' => '0500000009'],
-            ['name' => 'إبراهيم أحمد', 'email' => 'ibrahim@crm.com', 'phone' => '0500000010'],
-            ['name' => 'خديجة محمد', 'email' => 'khadija@crm.com', 'phone' => '0500000011'],
-            ['name' => 'يوسف علي', 'email' => 'youssef@crm.com', 'phone' => '0500000012'],
-            ['name' => 'نورا أحمد', 'email' => 'nora@crm.com', 'phone' => '0500000013'],
-            ['name' => 'طارق محمد', 'email' => 'tarek@crm.com', 'phone' => '0500000014'],
-            ['name' => 'رنا علي', 'email' => 'rana@crm.com', 'phone' => '0500000015'],
-            ['name' => 'كريم أحمد', 'email' => 'kareem@crm.com', 'phone' => '0500000016'],
-            ['name' => 'إيمان محمد', 'email' => 'eman@crm.com', 'phone' => '0500000017'],
-            ['name' => 'وائل علي', 'email' => 'wael@crm.com', 'phone' => '0500000018'],
-        ];
-
-        foreach ($employees as $employee) {
-            User::create([
-                'name' => $employee['name'],
-                'email' => $employee['email'],
-                'password' => Hash::make('123456'),
-                'role' => 'employee',
-                'is_active' => true,
-                'phone' => $employee['phone'],
-            ]);
+        if ($adminRole) {
+            $admin->syncRoles([$adminRole->name]);
         }
+
+        echo "Users created/updated successfully:\n";
+        echo "- Super Admin: admin@crm.com (password: 123456)\n";
+        echo "- Admin: manager@crm.com (password: 123456)\n";
     }
 }

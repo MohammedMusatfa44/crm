@@ -182,25 +182,25 @@
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-label">إجمالي العملاء</div>
-                    <div class="stat-value">{{ $subDepartment->customers->count() }}</div>
+                    <div class="stat-value">{{ $customers->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-label">الحالات الجديدة</div>
-                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'new')->count() }}</div>
+                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-label">الحالات النشطة</div>
-                    <div class="stat-value">{{ $subDepartment->customers->whereIn('status', ['in_progress', 'follow_up'])->count() }}</div>
+                    <div class="stat-value">{{ $customers->whereIn('status', ['in_progress', 'follow_up'])->count() }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-label">الحالات المغلقة</div>
-                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'closed')->count() }}</div>
+                    <div class="stat-value">{{ $customers->where('status', 'closed')->count() }}</div>
                 </div>
             </div>
         </div>
@@ -215,31 +215,31 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="stat-card no-answer">
                                     <div class="stat-label">No answer</div>
-                                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'new')->count() }}</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'new')->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3 col-sm-6">
                                 <div class="stat-card hot">
                                     <div class="stat-label">Hot</div>
-                                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'hot')->count() }}</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'hot')->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3 col-sm-6">
                                 <div class="stat-card western">
                                     <div class="stat-label">Western</div>
-                                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'western')->count() }}</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'western')->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3 col-sm-6">
                                 <div class="stat-card follow">
                                     <div class="stat-label">Follow</div>
-                                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'follow_up')->count() }}</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'follow_up')->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3 col-sm-6">
                                 <div class="stat-card deposits">
                                     <div class="stat-label">Deposits</div>
-                                    <div class="stat-value">{{ $subDepartment->customers->where('status', 'in_progress')->count() }}</div>
+                                    <div class="stat-value">{{ $customers->where('status', 'in_progress')->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3 col-sm-6">
@@ -270,7 +270,7 @@
         <div class="customers-section">
             <div class="customers-title">العملاء في هذا القسم الفرعي</div>
 
-            @if($subDepartment->customers->count() > 0)
+            @if($customers->count() > 0)
                 <div class="modern-table">
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -287,7 +287,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($subDepartment->customers as $customer)
+                                @foreach($customers as $customer)
                                 <tr>
                                     <td>
                                         <strong>{{ $customer->ac_number }}</strong>

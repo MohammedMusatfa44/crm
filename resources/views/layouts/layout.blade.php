@@ -1,21 +1,291 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>@yield('title', 'نظام إدارة علاقات العملاء')</title>    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">    <link href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@5.0.15/bootstrap-4.min.css" rel="stylesheet">    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet">    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">    <style>        body { background: #f8f9fa; font-family: 'Cairo', 'Tajawal', Arial, sans-serif; }        .modern-header {            background: #fff;            box-shadow: 0 2px 12px rgba(33,150,243,0.07);            border-bottom: 1px solid #e3e6ea;            padding: 0.7rem 0;        }        .modern-header .navbar-brand {            font-weight: bold;            color: #0b58ca;            font-size: 1.3rem;            letter-spacing: 1px;        }        .modern-header .user-info {            display: flex;            align-items: center;            gap: 1rem;        }        .modern-header .user-info .nav-link {            color: #0b58ca;            position: relative;        }        .modern-header .user-info .badge {            font-size: 0.7rem;        }        .modern-header .user-info img {            border: 2px solid #0b58ca;        }        .modern-sidebar {            position: fixed;            top: 0;            left: 0;            right: auto;            height: 100vh;            min-width: 220px;            max-width: 240px;            background: #fff;            color: #222;            border-radius: 0 1.2rem 1.2rem 0;            box-shadow: 0 4px 24px rgba(33,150,243,0.10);            padding: 2rem 1rem 1rem 1rem;            display: flex;            flex-direction: column;            gap: 1.2rem;            z-index: 1040;        }        .modern-sidebar .nav-link {            color: #222;            font-weight: 500;            border-radius: 0.7rem;            padding: 0.7rem 1rem;            margin-bottom: 0.3rem;            transition: background 0.18s, color 0.18s;            display: flex;            align-items: center;            gap: 0.7rem;        }        .modern-sidebar .nav-link.active, .modern-sidebar .nav-link:hover {            background: #0b58ca;            color: #fff;        }        .modern-sidebar .nav-link i {            font-size: 1.2rem;        }        .modern-sidebar .sidebar-title {            color: #0b58ca;            font-size: 1.1rem;            font-weight: 700;            margin-bottom: 1.2rem;            letter-spacing: 1px;        }        .main-content-fixed {            margin-left: 240px;            margin-right: 0;        }        @media (max-width: 991px) {            .modern-sidebar {                position: static;                min-width: 100%;                max-width: 100%;                border-radius: 0 0 1.2rem 1.2rem;                margin: 0 0 1.5rem 0;                height: auto;                flex-direction: row;                gap: 0.5rem;                padding: 1rem 0.5rem;            }            .main-content-fixed {                margin-left: 0;                margin-right: 0;            }        }    </style>    @yield('styles')</head><body>    <nav class="navbar modern-header navbar-expand-lg">        <div class="container-fluid justify-content-between">            <a class="navbar-brand" href="#">نظام إدارة علاقات العملاء</a>            <div class="user-info">                <span class="me-3">@auth {{ Auth::user()->name }} @endauth</span>                <a href="#" class="nav-link position-relative">                    <i class="bi bi-bell"></i>                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>                </a>                <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'مستخدم') }}" class="rounded-circle ms-2" width="40" height="40" alt="User">            </div>        </div>    </nav>    <div class="container-fluid">        <div class="row flex-row-reverse align-items-stretch min-vh-100">            <aside class="col-md-2 modern-sidebar d-flex flex-column h-100" style="margin:0;">                <div class="sidebar-title">القائمة الرئيسية</div>                <ul class="nav flex-column">                    <li class="nav-item"><a class="nav-link @if(request()->is('dashboard')) active @endif" href="/dashboard"><i class="bi bi-speedometer2"></i> لوحة التحكم</a></li>                    <li class="nav-item"><a class="nav-link @if(request()->is('customers*')) active @endif" href="/customers"><i class="bi bi-people"></i> العملاء</a></li>                    <li class="nav-item"><a class="nav-link @if(request()->is('users*')) active @endif" href="/users"><i class="bi bi-person-badge"></i> المستخدمون</a></li>                    <li class="nav-item">
-        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#sidebarDepartmentsMenu" role="button" aria-expanded="false" aria-controls="sidebarDepartmentsMenu">
-            <span><i class="bi bi-diagram-3"></i> الأقسام</span>
-            <i class="bi bi-chevron-down small"></i>
-        </a>
-        <ul class="collapse list-unstyled ps-4" id="sidebarDepartmentsMenu">
-            @php
-                use App\Models\Department;
-                $sidebarDepartments = Department::all();
-            @endphp
-            @foreach($sidebarDepartments as $dep)
-                <li class="mb-1">
-                    <a href="{{ url('departments/' . $dep->id) }}" class="text-decoration-none text-light-emphasis">• {{ $dep->name }}</a>
-                </li>
-            @endforeach
-        </ul>
-    </li>
-                    <li class="nav-item"><a class="nav-link @if(request()->is('notifications*')) active @endif" href="/notifications"><i class="bi bi-bell"></i> الإشعارات</a></li>
-                    <li class="nav-item"><a class="nav-link @if(request()->is('support-tickets*')) active @endif" href="/support-tickets"><i class="bi bi-life-preserver"></i> الدعم الفني</a></li>
-                    <li class="nav-item"><a class="nav-link @if(request()->is('permissions*')) active @endif" href="/permissions"><i class="bi bi-shield-lock"></i> الصلاحيات</a></li>
-                </ul>            </aside>            <main class="col-md-10 py-4 main-content-fixed" style="min-height:100vh;">                @yield('content')            </main>        </div>    </div>    <footer class="text-center py-3 bg-light mt-4">        جميع الحقوق محفوظة &copy; {{ date('Y') }}    </footer>    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.6/js/jquery.dataTables.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.6/js/dataTables.bootstrap5.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.7/dist/sweetalert2.all.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>    @yield('scripts')    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.0/dist/echo.iife.js"></script>    <script>        Pusher.logToConsole = true;        window.Echo = new Echo({            broadcaster: 'pusher',            key: '{{ env('PUSHER_APP_KEY') }}',            cluster: '{{ env('PUSHER_APP_CLUSTER') }}',            forceTLS: true        });        Echo.channel('customers')            .listen('CustomerAdded', (e) => {                toastr.success(e.message + ' - ' + e.name);                // Optionally play a sound or update a counter            });    </script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'نظام إدارة علاقات العملاء')</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4@5.0.15/bootstrap-4.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+        }
+        .modern-header {
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(33,150,243,0.07);
+            border-bottom: 1px solid #e3e6ea;
+            padding: 0.7rem 0;
+        }
+        .modern-header .navbar-brand {
+            font-weight: bold;
+            color: #0b58ca;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+        }
+        .modern-header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .modern-header .user-info .nav-link {
+            color: #0b58ca;
+            position: relative;
+        }
+        .modern-header .user-info .badge {
+            font-size: 0.7rem;
+        }
+        .modern-header .user-info img {
+            border: 2px solid #0b58ca;
+        }
+        .modern-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: auto;
+            height: 100vh;
+            min-width: 220px;
+            max-width: 240px;
+            background: #fff;
+            color: #222;
+            border-radius: 0 1.2rem 1.2rem 0;
+            box-shadow: 0 4px 24px rgba(33,150,243,0.10);
+            padding: 2rem 1rem 1rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            z-index: 1040;
+        }
+        .modern-sidebar .nav-link {
+            color: #222;
+            font-weight: 500;
+            border-radius: 0.7rem;
+            padding: 0.7rem 1rem;
+            margin-bottom: 0.3rem;
+            transition: background 0.18s, color 0.18s;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .modern-sidebar .nav-link.active, .modern-sidebar .nav-link:hover {
+            background: #0b58ca;
+            color: #fff;
+        }
+        .modern-sidebar .nav-link i {
+            font-size: 1.2rem;
+        }
+        .modern-sidebar .sidebar-title {
+            color: #0b58ca;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            letter-spacing: 1px;
+        }
+        .modern-sidebar .logout-section {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #e3e6ea;
+        }
+        .modern-sidebar .logout-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 0.7rem;
+            padding: 0.7rem 1rem;
+            font-weight: 500;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            transition: background 0.18s;
+        }
+        .modern-sidebar .logout-btn:hover {
+            background: #c82333;
+            color: #fff;
+        }
+        .main-content-fixed {
+            margin-left: 240px;
+            margin-right: 0;
+        }
+        @media (max-width: 991px) {
+            .modern-sidebar {
+                position: static;
+                min-width: 100%;
+                max-width: 100%;
+                border-radius: 0 0 1.2rem 1.2rem;
+                margin: 0 0 1.5rem 0;
+                height: auto;
+                flex-direction: row;
+                gap: 0.5rem;
+                padding: 1rem 0.5rem;
+            }
+            .main-content-fixed {
+                margin-left: 0;
+                margin-right: 0;
+            }
+            .modern-sidebar .logout-section {
+                margin-top: 0;
+                padding-top: 0;
+                border-top: none;
+            }
+        }
+    </style>
+    @yield('styles')
+</head>
+<body>
+    <nav class="navbar modern-header navbar-expand-lg">
+        <div class="container-fluid justify-content-between">
+            <a class="navbar-brand" href="#">نظام إدارة علاقات العملاء</a>
+            <div class="user-info">
+                <span class="me-3">@auth {{ Auth::user()->name }} @endauth</span>
+                <a href="#" class="nav-link position-relative">
+                    <i class="bi bi-bell"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+                </a>
+                <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'مستخدم') }}" class="rounded-circle ms-2" width="40" height="40" alt="User">
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row flex-row-reverse align-items-stretch min-vh-100">
+            <aside class="col-md-2 modern-sidebar d-flex flex-column h-100" style="margin:0;">
+                <div class="sidebar-title">القائمة الرئيسية</div>
+                <ul class="nav flex-column">
+                    @can('dashboard.view')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('dashboard')) active @endif" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> لوحة التحكم
+                        </a>
+                    </li>
+                    @endcan
+
+                    @can('clients.view')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('customers*')) active @endif" href="/customers">
+                            <i class="bi bi-people"></i> العملاء
+                        </a>
+                    </li>
+                    @endcan
+
+                    @can('users.view')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('users*')) active @endif" href="/users">
+                            <i class="bi bi-person-badge"></i> المستخدمون
+                        </a>
+                    </li>
+                    @endcan
+
+                    @can('sections.view')
+                    <li class="nav-item">
+                        <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#sidebarDepartmentsMenu" role="button" aria-expanded="false" aria-controls="sidebarDepartmentsMenu">
+                            <span><i class="bi bi-diagram-3"></i> الأقسام</span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+                        <ul class="collapse list-unstyled ps-4" id="sidebarDepartmentsMenu">
+                            @php
+                                $sidebarDepartments = \App\Models\Department::all();
+                            @endphp
+                            @foreach($sidebarDepartments as $dep)
+                                <li class="mb-1">
+                                    <a href="{{ url('departments/' . $dep->id) }}" class="text-decoration-none text-light-emphasis">• {{ $dep->name }}</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </li>
+                    @endcan
+
+                    @can('notifications.view')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('notifications*')) active @endif" href="/notifications">
+                            <i class="bi bi-bell"></i> الإشعارات
+                        </a>
+                    </li>
+                    @endcan
+
+                    @can('support.send_ticket')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('support-tickets*')) active @endif" href="/support-tickets">
+                            <i class="bi bi-life-preserver"></i> الدعم الفني
+                        </a>
+                    </li>
+                    @endcan
+
+                    @can('roles.view')
+                    <li class="nav-item">
+                        <a class="nav-link @if(request()->is('permissions*')) active @endif" href="/permissions">
+                            <i class="bi bi-shield-lock"></i> الصلاحيات
+                        </a>
+                    </li>
+                    @endcan
+                </ul>
+
+                <!-- Logout Section -->
+                <div class="logout-section">
+                    <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="logout-btn" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
+                            <i class="bi bi-box-arrow-right"></i>
+                            تسجيل الخروج
+                        </button>
+                    </form>
+                </div>
+            </aside>
+
+            <main class="col-md-10 py-4 main-content-fixed" style="min-height:100vh;">
+                @yield('content')
+            </main>
+        </div>
+    </div>
+
+    <footer class="text-center py-3 bg-light mt-4">
+        جميع الحقوق محفوظة &copy; {{ date('Y') }}
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.7/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+
+    <script>
+        // Set up CSRF token for AJAX requests
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        // Configure toastr
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "3000"
+        };
+    </script>
+
+    @yield('scripts')
+
+    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.0/dist/echo.iife.js"></script>
+    <script>
+        Pusher.logToConsole = true;
+        window.Echo = new Echo({
+            broadcaster: 'pusher',
+            key: '{{ env('PUSHER_APP_KEY') }}',
+            cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+            forceTLS: true
+        });
+        Echo.channel('customers')
+            .listen('CustomerAdded', (e) => {
+                toastr.success(e.message + ' - ' + e.name);
+                // Optionally play a sound or update a counter
+            });
+    </script>
+</body>
+</html>

@@ -406,6 +406,69 @@
             font-size: 1.2rem;
         }
     }
+
+    /* User Information Styles */
+    .user-info-card {
+        margin-top: 0.5rem;
+        padding: 0.8rem 1.2rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 0.8rem;
+        border-left: 4px solid #0b58ca;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .user-info-card .info-row {
+        font-size: 0.9rem;
+        color: #495057;
+        margin-bottom: 0.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .user-info-card .info-row:last-child {
+        margin-bottom: 0;
+    }
+    .user-info-card .info-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 80px;
+    }
+    .user-info-card .info-value {
+        color: #212529;
+    }
+    .role-badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 0.4rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .role-super-admin {
+        background: #dc3545;
+        color: white;
+    }
+    .role-admin {
+        background: #fd7e14;
+        color: white;
+    }
+    .role-employee {
+        background: #28a745;
+        color: white;
+    }
+    .role-unknown {
+        background: #6c757d;
+        color: white;
+    }
+    .permissions-list {
+        font-size: 0.8rem;
+        color: #6c757d;
+        max-width: 300px;
+        word-wrap: break-word;
+        line-height: 1.3;
+    }
+    .permissions-list.empty {
+        font-style: italic;
+        color: #adb5bd;
+    }
 </style>
 @endsection
 
@@ -416,16 +479,23 @@
             <div class="col-12">
                 <div class="dashboard-header-card" style="background:#fff; border-radius:1.2rem; box-shadow:0 2px 12px rgba(33,150,243,0.07); padding:1.5rem 2rem 1.2rem 2rem; margin-bottom:1.5rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;">
                     <div>
-                        <div class="dashboard-title">Dashboard</div>
-                        <div class="dashboard-subtitle">Elfurat CRM.</div>
+                        <div class="dashboard-title">                                <span class="info-value">{{ auth()->user()->name }}</span>
+                        </div>
+                        <div class="dashboard-subtitle">                                <span class="info-value">{{ auth()->user()->email }}</span>
+                        </div>
+                        <!-- User Information -->
+
                     </div>
                     <div class="top-actions">
                         <button class="btn btn-settings">الإعدادات</button>
+                        @can('dashboard.add_section')
                         <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">إضافة قسم جديد</button>
+                        @endcan
                     </div>
                 </div>
             </div>
         </div>
+        @can('dashboard.view')
         <div class="row mb-3">
             <div class="col-12">
                 <form class="dashboard-search-bar" style="margin-bottom:1.5rem;">
@@ -554,9 +624,16 @@
                 </div>
             </div>
         </div>
+        @else
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            ليس لديك صلاحية لعرض لوحة التحكم
+        </div>
+        @endcan
     </div>
 </div>
 <!-- Modal: إضافة قسم -->
+@can('dashboard.add_section')
 <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -577,6 +654,7 @@
         </div>
     </div>
 </div>
+@endcan
 @endsection
 
 @section('scripts')

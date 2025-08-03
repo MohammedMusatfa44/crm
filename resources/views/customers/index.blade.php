@@ -436,20 +436,25 @@
                         <button class="btn btn-outline-success" id="exportExcelBtn">
                             <i class="bi bi-download"></i> استخراج البيانات
                         </button>
-                        <button class="btn btn-outline-warning" id="bulkUpdateBtn" disabled>
+                        @can('clients.edit')
+                        <button class="btn btn-outline-warning" id="bulkStatusBtn" disabled>
                             <i class="bi bi-arrow-repeat"></i> تغيير الحالة (<span id="selectedCount">0</span>)
                         </button>
+                        @endcan
+                        @can('clients.edit')
                         <button class="btn btn-outline-info" id="bulkAssignBtn" disabled>
                             <i class="bi bi-people"></i> تخصيص للموظفين (<span id="selectedCount2">0</span>)
                         </button>
+                        @endcan
+                        @can('clients.create')
                         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                             <i class="bi bi-plus"></i> إضافة عميل
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>
         </div>
-
         <!-- Reports Button -->
         <div class="row mb-3">
             <div class="col-12">
@@ -458,7 +463,6 @@
                 </a>
             </div>
         </div>
-
         <!-- Customers Table Section -->
         <div class="row">
             <div class="col-12" id="tableContainer">
@@ -506,9 +510,15 @@
                                     <td>{{ $customer->subDepartment->name ?? 'غير محدد' }}</td>
                                     <td>{{ $customer->city ?? '-' }}</td>
                                     <td>
+                                        @can('clients.view')
                                         <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-primary btn-action">عرض</a>
+                                        @endcan
+                                        @can('clients.edit')
                                         <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-warning btn-action">تعديل</a>
+                                        @endcan
+                                        @can('clients.delete')
                                         <button class="btn btn-sm btn-danger btn-action" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->full_name }}')">حذف</button>
+                                        @endcan
                                     </td>
                                 </tr>
                                 @endforeach
@@ -564,9 +574,15 @@
                                     <td>{{ $customer->subDepartment->name ?? 'غير محدد' }}</td>
                                     <td>{{ $customer->city ?? '-' }}</td>
                                     <td>
+                                        @can('clients.view')
                                         <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-primary btn-action">عرض</a>
+                                        @endcan
+                                        @can('clients.edit')
                                         <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-warning btn-action">تعديل</a>
+                                        @endcan
+                                        @can('clients.delete')
                                         <button class="btn btn-sm btn-danger btn-action" onclick="deleteCustomer({{ $customer->id }}, '{{ $customer->full_name }}')">حذف</button>
+                                        @endcan
                                     </td>
                                 </tr>
                                 @endforeach
@@ -591,6 +607,7 @@
 </div>
 
 <!-- Modal: إضافة عميل -->
+@can('clients.create')
 <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -638,18 +655,28 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">الموظف المسؤول</label>
-                        <select class="form-select" name="assigned_employee_id" required>
+                        <select class="form-select" name="assigned_employee_id">
+                            <option value="">اختر موظف</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">حفظ</button>
+                    <div class="mb-3">
+                        <label class="form-label">المدينة</label>
+                        <input type="text" class="form-control" name="city">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea class="form-control" name="notes" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">حفظ العميل</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+@endcan
 
 <!-- Modal: رفع إكسل -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
@@ -743,7 +770,7 @@
                         <select class="form-select" id="assignedEmployee" name="assigned_employee_id" required>
                             <option value="">اختر الموظف</option>
                             @foreach($users as $user)
-                                @if($user->role == 'employee' || $user->role == 'admin')
+                                @if($user->hasRole('employee') || $user->hasRole('admin'))
                                     <option value="{{ $user->id }}">{{ $user->name }}</option>
                                 @endif
                             @endforeach
@@ -785,7 +812,7 @@
             <div class="modal-body">
                 @if(session('import_detection'))
                     @php $detection = session('import_detection'); @endphp
-                    
+
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="card bg-success text-white">
@@ -832,7 +859,7 @@
                                     <label class="btn btn-outline-warning" for="actionUpdate">
                                         <i class="fas fa-edit"></i> تحديث العملاء المحددين
                                     </label>
-                                    
+
                                     <input type="radio" class="btn-check" name="action" id="actionSkip" value="skip">
                                     <label class="btn btn-outline-secondary" for="actionSkip">
                                         <i class="fas fa-times"></i> تخطي العملاء المحددين
@@ -884,12 +911,12 @@
                             @endif
                             <input type="hidden" name="action" value="import_new">
                             <input type="hidden" name="selected_duplicates" value="">
-                            
+
                             <div class="alert alert-success">
                                 <i class="fas fa-check-circle"></i>
                                 <strong>جميع العملاء جدد!</strong> سيتم إضافة {{ $detection['total_new'] ?? 0 }} عميل جديد إلى النظام.
                             </div>
-                            
+
                             <div class="text-center">
                                 <p class="text-muted">اضغط "تأكيد الإجراء" لإضافة جميع العملاء الجدد</p>
                             </div>
@@ -1053,7 +1080,7 @@
         });
 
         // Bulk update button click
-        $('#bulkUpdateBtn').on('click', function() {
+        $('#bulkStatusBtn').on('click', function() {
             var selectedIds = getSelectedCustomerIds();
             if (selectedIds.length > 0) {
                 $('#modalSelectedCount').text(selectedIds.length);
@@ -1116,13 +1143,13 @@
         $('#duplicateActionForm').on('submit', function(e) {
             e.preventDefault();
             console.log('Form submission started');
-            
+
             var formData = $(this).serialize();
             console.log('Form data:', formData);
-            
+
             // Show loading state
             $('#confirmActionBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...');
-            
+
             $.ajax({
                 url: $(this).attr('action'),
                 method: 'POST',
@@ -1172,10 +1199,10 @@
             $('#selectedCount2').text(selectedCount);
 
             if (selectedCount > 0) {
-                $('#bulkUpdateBtn').prop('disabled', false);
+                $('#bulkStatusBtn').prop('disabled', false);
                 $('#bulkAssignBtn').prop('disabled', false);
             } else {
-                $('#bulkUpdateBtn').prop('disabled', true);
+                $('#bulkStatusBtn').prop('disabled', true);
                 $('#bulkAssignBtn').prop('disabled', true);
             }
         }
