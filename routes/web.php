@@ -22,6 +22,72 @@ Route::get('/', [App\Http\Controllers\AuthController::class, 'showLoginForm'])->
 Route::post('login', [App\Http\Controllers\AuthController::class, 'login']);
 Route::post('logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 
+// Test routes for debugging
+Route::get('test-notification', function() {
+    return response()->json([
+        'success' => true,
+        'message' => 'Test route working',
+        'user' => auth()->user() ? auth()->user()->id : null
+    ]);
+});
+
+Route::get('test-simple', function() {
+    return response()->json([
+        'success' => true,
+        'message' => 'Simple test working'
+    ]);
+});
+
+Route::get('test-session', function() {
+    return response()->json([
+        'success' => true,
+        'session_id' => session()->getId(),
+        'user' => auth()->user() ? auth()->user()->id : null,
+        'authenticated' => auth()->check()
+    ]);
+});
+
+Route::get('test-notification-count', function() {
+    return response()->json([
+        'success' => true,
+        'count' => 5,
+        'user' => auth()->user() ? auth()->user()->id : null,
+        'authenticated' => auth()->check()
+    ]);
+});
+
+// Notification count route (temporarily outside middleware for testing)
+Route::get('notifications/count', [App\Http\Controllers\NotificationController::class, 'getNotificationCount']);
+Route::get('notifications/triggered', [App\Http\Controllers\NotificationController::class, 'getTriggeredNotifications']);
+
+// Test route for notifications
+Route::get('test-notifications', function() {
+    try {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No user authenticated'
+            ]);
+        }
+
+        $notifications = \App\Models\Notification::where('user_id', $user->id)->get();
+
+        return response()->json([
+            'success' => true,
+            'user_id' => $user->id,
+            'total_notifications' => $notifications->count(),
+            'notifications' => $notifications->take(3)->toArray()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+});
+
 // Dashboard routes
 Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
@@ -59,9 +125,16 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     // Notification routes
     Route::resource('notifications', App\Http\Controllers\NotificationController::class);
+    Route::post('notifications/{notification}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
     Route::post('notifications/{notification}/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('notifications/{notification}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('notifications/mark-read/{id}', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('notifications/{notification}/trigger', [App\Http\Controllers\NotificationController::class, 'trigger']);
     Route::get('notifications/real-time', [App\Http\Controllers\NotificationController::class, 'realTime']);
     Route::get('notifications/triggered', [App\Http\Controllers\NotificationController::class, 'getTriggeredNotifications']);
+    Route::get('notifications/count', [App\Http\Controllers\NotificationController::class, 'getNotificationCount']);
+    Route::get('notifications/test-session', [App\Http\Controllers\NotificationController::class, 'testSession']);
+    Route::post('notifications/force-trigger', [App\Http\Controllers\NotificationController::class, 'forceTrigger']);
 
     // Support routes
     Route::resource('support-tickets', App\Http\Controllers\SupportTicketController::class);

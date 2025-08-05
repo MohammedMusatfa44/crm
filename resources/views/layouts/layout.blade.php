@@ -139,13 +139,27 @@
 <body>
     <nav class="navbar modern-header navbar-expand-lg">
         <div class="container-fluid justify-content-between">
-            <a class="navbar-brand" href="#">نظام إدارة علاقات العملاء</a>
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand position-relative" href="#" id="headerNotificationBell">
+                    نظام إدارة علاقات العملاء
+                    @can('notifications.view')
+                    @php
+                        $notificationCount = 0;
+                        if (auth()->check()) {
+                            $notificationCount = \App\Models\Notification::where('user_id', auth()->id())
+                                ->where('is_triggered', true)
+                                ->where('is_read', false)
+                                ->count();
+                        }
+                    @endphp
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="headerNotificationCount" style="font-size: 0.7rem; min-width: 18px; margin-left: 10px;">
+                        {{ $notificationCount }}
+                    </span>
+                    @endcan
+                </a>
+            </div>
             <div class="user-info">
                 <span class="me-3">@auth {{ Auth::user()->name }} @endauth</span>
-                <a href="#" class="nav-link position-relative">
-                    <i class="bi bi-bell"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
-                </a>
                 <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? 'مستخدم') }}" class="rounded-circle ms-2" width="40" height="40" alt="User">
             </div>
         </div>
@@ -245,6 +259,40 @@
         جميع الحقوق محفوظة &copy; {{ date('Y') }}
     </footer>
 
+    <!-- Global Notification System -->
+    <!-- Modern Notification Alert Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+        <!-- Close All Button (hidden by default) -->
+        <div id="closeAllButton" style="display: none; margin-bottom: 10px;">
+            <button type="button" class="btn btn-sm btn-outline-light" onclick="closeAllNotifications()" style="width: 100%; border-radius: 20px;">
+                <i class="bi bi-x-circle"></i> إغلاق الكل
+            </button>
+        </div>
+        <!-- Notifications will be added here dynamically -->
+    </div>
+
+    <!-- Template for individual notification -->
+    <template id="notificationTemplate">
+        <div class="notification-alert">
+            <div class="notification-content">
+                <div class="notification-header">
+                    <div class="notification-icon">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                    <div class="notification-title">
+                        <strong class="notification-title-text"></strong>
+                    </div>
+                    <button type="button" class="notification-close" onclick="closeNotification(this)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="notification-body">
+                    <p class="notification-message mb-0"></p>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.6/js/jquery.dataTables.min.js"></script>
@@ -256,7 +304,11 @@
         // Set up CSRF token for AJAX requests
         $.ajaxSetup({
             headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            xhrFields: {
+                withCredentials: true
             }
         });
 
@@ -267,13 +319,582 @@
             "positionClass": "toast-top-right",
             "timeOut": "3000"
         };
+
+        // Update notification count in header
+        function updateHeaderNotificationCount() {
+            $.ajax({
+                url: '/notifications/count',
+                type: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                xhrFields: {
+                    withCredentials: true
+                },
+                success: function(response) {
+                    if (response.success) {
+                        const count = response.count;
+                        const badge = $('#headerNotificationCount');
+                        badge.text(count);
+
+                        // Add animation if count increased
+                        if (count > 0) {
+                            badge.addClass('pulse-animation');
+                            setTimeout(() => {
+                                badge.removeClass('pulse-animation');
+                            }, 1000);
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    console.log('Error updating notification count:', xhr);
+                }
+            });
+        }
+
+        // Make the title clickable to go to notifications
+        $(document).ready(function() {
+            $('#headerNotificationBell').click(function(e) {
+                e.preventDefault();
+                window.location.href = '/notifications';
+            });
+
+            // Update notification count immediately
+            updateHeaderNotificationCount();
+
+            // Check for notifications immediately when page loads
+            console.log('Page loaded, checking for notifications immediately...');
+            fetch('/notifications/triggered')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Initial notification check response:', data);
+                    if (data.success && data.count > 0) {
+                        console.log(`Found ${data.count} notifications to show on page load`);
+                        data.notifications.forEach(function(notification) {
+                            console.log('Showing notification on page load:', notification.title);
+                            // Show notification with customer information
+                            const customerName = notification.customer ? notification.customer.full_name : null;
+                            showNotificationAlert(notification.title, notification.message, customerName);
+
+                            // Mark notification as read after showing it (with delay)
+                            setTimeout(() => {
+                                fetch(`/notifications/mark-read/${notification.id}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json'
+                                    }
+                                }).then(response => response.json())
+                                .then(result => {
+                                    console.log('Marked notification as read on page load:', result);
+                                })
+                                .catch(error => console.log('Error marking notification as read on page load:', error));
+                            }, 2000); // Wait 2 seconds before marking as read
+                        });
+                    } else {
+                        console.log('No notifications to show on page load');
+                    }
+                })
+                .catch(error => {
+                    console.log('Error checking notifications on page load:', error);
+                });
+        });
+
+        // Update notification count every 10 seconds
+        setInterval(function() {
+            updateHeaderNotificationCount();
+        }, 10000);
+
+        // Global Notification Functions
+        // Debug function to check active notifications
+        function debugNotifications() {
+            console.log('Active notifications:', window.activeNotifications);
+            const container = document.getElementById('notificationContainer');
+            const notifications = container.querySelectorAll('.notification-alert');
+            console.log('DOM notifications count:', notifications.length);
+            notifications.forEach((notification, index) => {
+                console.log(`Notification ${index + 1}:`, notification.id);
+            });
+        }
+
+        // Simple alert functions
+        function showAlert(title, message) {
+            console.log('Creating alert:', title, message);
+            return createNotification(title, message, null, false);
+        }
+
+        // Show notification alert with actual content (stays visible until manually closed)
+        function showNotificationAlert(title, message, customer) {
+            console.log('Creating notification alert:', title, message, customer);
+            return createNotification(title, message, customer, true);
+        }
+
+        // Create a new notification
+        function createNotification(title, message, customer, isRepeating = false) {
+            // Prevent multiple notifications with the same content at the same time
+            const notificationKey = `${title}-${message}-${customer}-${isRepeating}`;
+            if (window.activeNotifications && window.activeNotifications[notificationKey]) {
+                console.log('Notification already exists, skipping duplicate');
+                return window.activeNotifications[notificationKey];
+            }
+
+            // Initialize active notifications object if it doesn't exist
+            if (!window.activeNotifications) {
+                window.activeNotifications = {};
+            }
+
+            const container = document.getElementById('notificationContainer');
+            const template = document.getElementById('notificationTemplate');
+            const notificationElement = template.content.cloneNode(true);
+
+            // Generate unique ID for this notification
+            const notificationId = 'notification_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const alertElement = notificationElement.querySelector('.notification-alert');
+            alertElement.id = notificationId;
+
+            // Set notification content
+            notificationElement.querySelector('.notification-title-text').textContent = title;
+            notificationElement.querySelector('.notification-message').textContent = customer ? `${message}\n\nالعميل: ${customer}` : message;
+
+            // Add to container
+            container.appendChild(notificationElement);
+
+            // Store the notification ID
+            window.activeNotifications[notificationKey] = notificationId;
+
+            // Show "Close All" button if there are multiple notifications
+            const notifications = container.querySelectorAll('.notification-alert');
+            const closeAllButton = document.getElementById('closeAllButton');
+            if (notifications.length > 1) {
+                closeAllButton.style.display = 'block';
+            }
+
+            // Play sound
+            if (isRepeating) {
+                playRepeatingSound(alertElement);
+            } else {
+                playSingleSound();
+            }
+
+            // Auto-hide simple alerts after 5 seconds
+            if (!isRepeating) {
+                setTimeout(() => {
+                    const alert = document.getElementById(notificationId);
+                    if (alert) {
+                        closeNotificationById(notificationId);
+                    }
+                }, 5000);
+            }
+
+            return notificationId;
+        }
+
+        // Close notification by ID
+        function closeNotificationById(notificationId) {
+            const notificationElement = document.getElementById(notificationId);
+            if (notificationElement) {
+                // Stop repeating sound if exists
+                if (notificationElement.soundInterval) {
+                    clearInterval(notificationElement.soundInterval);
+                    notificationElement.soundInterval = null;
+                }
+
+                // Remove from active notifications tracking
+                if (window.activeNotifications) {
+                    for (const key in window.activeNotifications) {
+                        if (window.activeNotifications[key] === notificationId) {
+                            delete window.activeNotifications[key];
+                            break;
+                        }
+                    }
+                }
+
+                // Remove the notification
+                notificationElement.remove();
+
+                // Hide "Close All" button if only one notification remains
+                const container = document.getElementById('notificationContainer');
+                const remainingNotifications = container.querySelectorAll('.notification-alert');
+                const closeAllButton = document.getElementById('closeAllButton');
+                if (remainingNotifications.length <= 1) {
+                    closeAllButton.style.display = 'none';
+                }
+            }
+        }
+
+        // Close individual notification
+        function closeNotification(button) {
+            const notificationElement = button.closest('.notification-alert');
+
+            // Stop repeating sound if exists
+            if (notificationElement.soundInterval) {
+                clearInterval(notificationElement.soundInterval);
+                notificationElement.soundInterval = null;
+            }
+
+            // Remove from active notifications tracking
+            if (window.activeNotifications) {
+                for (const key in window.activeNotifications) {
+                    if (window.activeNotifications[key] === notificationElement.id) {
+                        delete window.activeNotifications[key];
+                        break;
+                    }
+                }
+            }
+
+            // Remove the notification
+            notificationElement.remove();
+
+            // Hide "Close All" button if only one notification remains
+            const container = document.getElementById('notificationContainer');
+            const remainingNotifications = container.querySelectorAll('.notification-alert');
+            const closeAllButton = document.getElementById('closeAllButton');
+            if (remainingNotifications.length <= 1) {
+                closeAllButton.style.display = 'none';
+            }
+        }
+
+        // Close all notifications and stop all sounds
+        function closeAllNotifications() {
+            const container = document.getElementById('notificationContainer');
+            const notifications = container.querySelectorAll('.notification-alert');
+
+            notifications.forEach(notification => {
+                // Stop repeating sound if exists
+                if (notification.soundInterval) {
+                    clearInterval(notification.soundInterval);
+                    notification.soundInterval = null;
+                }
+                // Remove the notification
+                notification.remove();
+            });
+
+            // Clear all active notifications tracking
+            window.activeNotifications = {};
+
+            // Hide "Close All" button if all notifications are closed
+            const closeAllButton = document.getElementById('closeAllButton');
+            if (notifications.length === 0) {
+                closeAllButton.style.display = 'none';
+            }
+        }
+
+        // Legacy function for backward compatibility
+        function hideAlert() {
+            closeAllNotifications();
+        }
+
+        // Play single sound (for simple alerts)
+        function playSingleSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+
+                console.log('Single sound played');
+            } catch (e) {
+                console.log('Could not play single sound:', e);
+            }
+        }
+
+        // Play repeating sound for notification alerts
+        function playRepeatingSound(notificationElement) {
+            let soundInterval;
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                function playBeep() {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                }
+
+                // Play initial beep
+                playBeep();
+
+                // Repeat sound every 2 seconds
+                soundInterval = setInterval(playBeep, 2000);
+
+                // Store interval ID in the notification element
+                notificationElement.soundInterval = soundInterval;
+
+                console.log('Repeating sound started');
+            } catch (e) {
+                console.log('Could not play repeating sound:', e);
+            }
+        }
+
+        // Check for triggered notifications every 10 seconds
+        setInterval(function() {
+            console.log('Checking for notifications...');
+            fetch('/notifications/triggered')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Notification check response:', data);
+                    if (data.success && data.count > 0) {
+                        console.log(`Found ${data.count} notifications to show`);
+                        data.notifications.forEach(function(notification) {
+                            console.log('Showing notification:', notification.title);
+                            // Show notification with customer information
+                            const customerName = notification.customer ? notification.customer.full_name : null;
+                            showNotificationAlert(notification.title, notification.message, customerName);
+
+                            // Mark notification as read after showing it (with delay)
+                            setTimeout(() => {
+                                fetch(`/notifications/mark-read/${notification.id}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Content-Type': 'application/json'
+                                    }
+                                }).then(response => response.json())
+                                .then(result => {
+                                    console.log('Marked notification as read:', result);
+                                })
+                                .catch(error => console.log('Error marking notification as read:', error));
+                            }, 2000); // Wait 2 seconds before marking as read
+                        });
+                    } else {
+                        console.log('No notifications to show');
+                    }
+                })
+                .catch(error => {
+                    console.log('Error checking notifications:', error);
+                });
+        }, 10000);
+
+        // Test function to manually trigger notifications (for testing)
+        window.testNotification = function() {
+            showNotificationAlert('اختبار التنبيه', 'هذا تنبيه تجريبي لاختبار النظام', 'عميل تجريبي');
+        };
+
+        // Test function to force trigger all notifications (for testing)
+        window.forceTriggerNotifications = function() {
+            fetch('/notifications/force-trigger', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('تم التفعيل', data.message);
+                } else {
+                    showAlert('خطأ', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error forcing trigger:', error);
+                showAlert('خطأ', 'حدث خطأ أثناء إجبار التفعيل');
+            });
+        };
+
+        // Test function to check current notification state
+        window.checkNotificationState = function() {
+            console.log('Checking notification state...');
+            fetch('/notifications/triggered')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Current notification state:', data);
+                    if (data.debug) {
+                        console.log('Debug info:', data.debug);
+                    }
+                    showAlert('حالة التنبيهات', `تم العثور على ${data.count} تنبيه. راجع وحدة التحكم للحصول على التفاصيل.`);
+                })
+                .catch(error => {
+                    console.error('Error checking notification state:', error);
+                    showAlert('خطأ', 'حدث خطأ أثناء فحص حالة التنبيهات');
+                });
+        };
+
+        // Test function to check basic notification functionality
+        window.testBasicNotifications = function() {
+            console.log('Testing basic notification functionality...');
+            fetch('/test-notifications')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Basic notification test response:', data);
+                    showAlert('اختبار التنبيهات', `المستخدم: ${data.user_id}, إجمالي التنبيهات: ${data.total_notifications}`);
+                })
+                .catch(error => {
+                    console.error('Error testing basic notifications:', error);
+                    showAlert('خطأ', 'حدث خطأ أثناء اختبار التنبيهات الأساسية');
+                });
+        };
     </script>
+
+    <style>
+        /* Animation for notification badge */
+        .pulse-animation {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Title hover effect */
+        #headerNotificationBell {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #headerNotificationBell:hover {
+            transform: scale(1.02);
+            color: #0b58ca !important;
+        }
+
+        /* Badge styling */
+        #headerNotificationCount {
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Make the title more prominent */
+        .navbar-brand {
+            font-weight: bold;
+            color: #0b58ca;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+        }
+
+        /* Global Notification Styles */
+        .notification-alert {
+            position: relative;
+            max-width: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: none;
+            color: white;
+            animation: slideInRight 0.5s ease-out;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        #notificationContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification-content {
+            padding: 20px;
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .notification-icon {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        .notification-icon i {
+            font-size: 18px;
+            color: white;
+        }
+
+        .notification-title {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .notification-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .notification-close:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .notification-body {
+            font-size: 14px;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
 
     @yield('scripts')
 
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.0/dist/echo.iife.js"></script>
     <script>
+        // Temporarily disabled Pusher to avoid connection errors
+        /*
         Pusher.logToConsole = true;
         window.Echo = new Echo({
             broadcaster: 'pusher',
@@ -286,6 +907,7 @@
                 toastr.success(e.message + ' - ' + e.name);
                 // Optionally play a sound or update a counter
             });
+        */
     </script>
 </body>
 </html>

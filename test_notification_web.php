@@ -5,8 +5,8 @@ require_once 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-echo "🔍 Testing Notification System (Simplified)\n";
-echo "=========================================\n\n";
+echo "🔍 Testing Notification Web Endpoints\n";
+echo "====================================\n\n";
 
 try {
     // Test 1: Check if we can access the controller
@@ -26,8 +26,24 @@ try {
         exit(1);
     }
 
-    // Test 3: Test getTriggeredNotifications method (simplified)
-    echo "3. Testing getTriggeredNotifications method (simplified)...\n";
+    // Test 3: Test getNotificationCount method
+    echo "3. Testing getNotificationCount method...\n";
+    $result = $controller->getNotificationCount();
+    $responseData = json_decode($result->getContent(), true);
+
+    echo "   Response status: " . $result->getStatusCode() . "\n";
+    echo "   Response content: " . $result->getContent() . "\n";
+
+    if ($responseData['success']) {
+        echo "✅ getNotificationCount executed successfully\n";
+        echo "   Count: {$responseData['count']}\n";
+    } else {
+        echo "❌ getNotificationCount failed: {$responseData['message']}\n";
+    }
+    echo "\n";
+
+    // Test 4: Test getTriggeredNotifications method
+    echo "4. Testing getTriggeredNotifications method...\n";
     $result = $controller->getTriggeredNotifications();
     $responseData = json_decode($result->getContent(), true);
 
@@ -45,25 +61,7 @@ try {
     }
     echo "\n";
 
-    // Test 4: Test testSession method
-    echo "4. Testing testSession method...\n";
-    $result = $controller->testSession();
-    $responseData = json_decode($result->getContent(), true);
-
-    echo "   Response status: " . $result->getStatusCode() . "\n";
-    echo "   Response content: " . $result->getContent() . "\n";
-
-    if ($responseData['success']) {
-        echo "✅ testSession executed successfully\n";
-        echo "   Authenticated: " . ($responseData['authenticated'] ? 'Yes' : 'No') . "\n";
-        echo "   User ID: {$responseData['user_id']}\n";
-        echo "   User Name: {$responseData['user_name']}\n";
-    } else {
-        echo "❌ testSession failed: {$responseData['error']}\n";
-    }
-    echo "\n";
-
-    echo "🎯 Simplified test complete!\n";
+    echo "🎯 Web endpoint test complete!\n";
 
 } catch (Exception $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";

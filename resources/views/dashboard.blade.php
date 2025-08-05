@@ -108,6 +108,13 @@
         font-size: 1rem;
         min-width: 60px;
     }
+    .reports-filters input[type="date"] {
+        min-width: 140px;
+        padding: 0.3rem 0.7rem;
+        border-radius: 0.7rem;
+        border: 1px solid #e3e6ea;
+        font-size: 1rem;
+    }
     .reports-filters .btn {
         background: #1976d2;
         color: #fff;
@@ -487,7 +494,6 @@
 
                     </div>
                     <div class="top-actions">
-                        <button class="btn btn-settings">الإعدادات</button>
                         @can('dashboard.add_section')
                         <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">إضافة قسم جديد</button>
                         @endcan
@@ -496,13 +502,7 @@
             </div>
         </div>
         @can('dashboard.view')
-        <div class="row mb-3">
-            <div class="col-12">
-                <form class="dashboard-search-bar" style="margin-bottom:1.5rem;">
-                    <input type="text" class="form-control" placeholder="Search ..." style="max-width:400px; border-radius:1.2rem; box-shadow:0 1px 4px rgba(33,150,243,0.07); display:inline-block;">
-                </form>
-            </div>
-        </div>
+
         <div class="row mb-4 g-4">
             <div class="col-md-3">
                 <div class="stat-card categories">
@@ -586,6 +586,12 @@
                         </option>
                     @endforeach
                 </select>
+                <span>من تاريخ:</span>
+                <input type="date" id="startDateFilter" class="form-control" style="width: auto;"
+                       value="{{ request('start_date', '') }}" placeholder="من تاريخ">
+                <span>إلى تاريخ:</span>
+                <input type="date" id="endDateFilter" class="form-control" style="width: auto;"
+                       value="{{ request('end_date', '') }}" placeholder="إلى تاريخ">
                 <button class="btn btn-primary" onclick="applyFilters()">تطبيق الفلتر</button>
                 <button class="btn btn-secondary" onclick="clearFilters()">مسح الفلتر</button>
             </div>
@@ -756,7 +762,7 @@
                 labels: chartData.months || ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
                 datasets: [{
                     label: 'Reminder',
-                    data: [1, 2, 1, 3, 2, 4], // Static data for reminders
+                    data: chartData.notifications || [0, 0, 0, 0, 0, 0], // Real notification data
                     fill: true,
                     backgroundColor: reminderGradient,
                     borderColor: '#7f53ac',
@@ -854,6 +860,10 @@
             usersChart.data.datasets[0].data = newChartData.users || [];
             usersChart.update();
         }
+        if (reminderChart) {
+            reminderChart.data.datasets[0].data = newChartData.notifications || [];
+            reminderChart.update();
+        }
         if (subCategoriesChart) {
             subCategoriesChart.data.datasets[0].data = newChartData.sub_departments || [];
             subCategoriesChart.update();
@@ -880,6 +890,14 @@
     function applyFilters() {
         const departmentId = document.getElementById('departmentFilter').value;
         const subDepartmentId = document.getElementById('subDepartmentFilter').value;
+        const startDate = document.getElementById('startDateFilter').value;
+        const endDate = document.getElementById('endDateFilter').value;
+
+        // Validate date range
+        if (startDate && endDate && startDate > endDate) {
+            alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+            return;
+        }
 
         // Update URL with filters
         const url = new URL(window.location);
@@ -887,6 +905,10 @@
         else url.searchParams.delete('department_id');
         if (subDepartmentId) url.searchParams.set('sub_department_id', subDepartmentId);
         else url.searchParams.delete('sub_department_id');
+        if (startDate) url.searchParams.set('start_date', startDate);
+        else url.searchParams.delete('start_date');
+        if (endDate) url.searchParams.set('end_date', endDate);
+        else url.searchParams.delete('end_date');
 
         // Reload page with filters
         window.location.href = url.toString();
@@ -896,6 +918,8 @@
     function clearFilters() {
         document.getElementById('departmentFilter').value = '';
         document.getElementById('subDepartmentFilter').value = '';
+        document.getElementById('startDateFilter').value = '';
+        document.getElementById('endDateFilter').value = '';
         window.location.href = window.location.pathname;
     }
 

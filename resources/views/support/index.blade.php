@@ -168,8 +168,20 @@
         <div class="dashboard-header-card">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h1 class="dashboard-title">الدعم الفني</h1>
-                    <p class="dashboard-subtitle">إدارة تذاكر الدعم الفني</p>
+                    <h1 class="dashboard-title">
+                        @if(auth()->user()->hasRole('super_admin'))
+                            الدعم الفني
+                        @else
+                            تذاكر الدعم الشخصية
+                        @endif
+                    </h1>
+                    <p class="dashboard-subtitle">
+                        @if(auth()->user()->hasRole('super_admin'))
+                            إدارة جميع تذاكر الدعم الفني
+                        @else
+                            تذاكر الدعم الفني الخاصة بك - لا يمكن للآخرين رؤيتها
+                        @endif
+                    </p>
                 </div>
                 <div class="col-md-6">
                     <div class="top-actions">
@@ -184,7 +196,11 @@
         <!-- Support Tickets Table -->
         <div class="modern-table">
             <div class="table-header">
-                قائمة تذاكر الدعم الفني
+                @if(auth()->user()->hasRole('super_admin'))
+                    قائمة جميع تذاكر الدعم الفني
+                @else
+                    قائمة تذاكر الدعم الفني الشخصية
+                @endif
             </div>
             <div class="table-responsive">
                 <table id="supportTicketsTable" class="table table-hover">
@@ -194,13 +210,41 @@
                             <th>الوصف</th>
                             <th>الأولوية</th>
                             <th>الحالة</th>
-                            <th>المستخدم</th>
+                            @if(auth()->check() && auth()->user()->hasRole('super_admin'))
+                                <th>المستخدم</th>
+                            @endif
                             <th>رد الإدارة</th>
                             <th>تاريخ الرد</th>
                             <th>خيارات</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @if($tickets->isEmpty())
+                        <tr>
+                            <td class="text-center py-4" style="border: none;">
+                                <div class="text-muted">
+                                    <i class="bi bi-ticket-detailed" style="font-size: 2rem;"></i>
+                                    <p class="mt-2 mb-0">
+                                        @if(auth()->user()->hasRole('super_admin'))
+                                            لا توجد تذاكر دعم فني
+                                        @else
+                                            لا توجد تذاكر دعم فني شخصية
+                                        @endif
+                                    </p>
+                                    <small>أنشئ تذكرة دعم جديدة لتبدأ في استخدام النظام</small>
+                                </div>
+                            </td>
+                            <td style="border: none;"></td>
+                            <td style="border: none;"></td>
+                            <td style="border: none;"></td>
+                            @if(auth()->user()->hasRole('super_admin'))
+                                <td style="border: none;"></td>
+                            @endif
+                            <td style="border: none;"></td>
+                            <td style="border: none;"></td>
+                            <td style="border: none;"></td>
+                        </tr>
+                        @else
                         @foreach($tickets as $ticket)
                         <tr>
                             <td>
@@ -227,21 +271,37 @@
                                     <span class="status-badge closed">مغلقة</span>
                                 @endif
                             </td>
-                            <td>{{ $ticket->user->name ?? 'غير محدد' }}</td>
+                            @if(auth()->check() && auth()->user()->hasRole('super_admin'))
+                                <td>{{ $ticket->user->name ?? 'غير محدد' }}</td>
+                            @endif
                             <td>{{ Str::limit($ticket->admin_reply, 30) ?? '-' }}</td>
                             <td>{{ $ticket->replied_at ? $ticket->replied_at->format('d/m/Y H:i') : '-' }}</td>
                             <td>
                                 <button class="btn btn-action btn-view" onclick="viewTicket({{ $ticket->id }})" title="عرض">
                                     عرض
                                 </button>
-                                @can('support.view_all_tickets')
+                                @php
+                                    $canReply = false;
+                                    $currentUser = auth()->user();
+                                    $ticketCreator = $ticket->user;
+
+                                    if ($currentUser->hasRole('super_admin')) {
+                                        $canReply = true;
+                                    } elseif ($currentUser->hasRole('admin')) {
+                                        // Admin can only reply to tickets created by employees they created
+                                        $canReply = $ticketCreator->hasRole('employee') && $ticketCreator->created_by === $currentUser->id;
+                                    }
+                                    // Employees cannot reply to any tickets
+                                @endphp
+                                @if($canReply)
                                 <button class="btn btn-action btn-reply" onclick="replyTicket({{ $ticket->id }})" title="رد">
                                     رد
                                 </button>
-                                @endcan
+                                @endif
                             </td>
                         </tr>
                         @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -336,10 +396,40 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
-    $('#supportTicketsTable').DataTable({
+    // Check if table already has DataTable instance
+    if ($.fn.DataTable.isDataTable('#supportTicketsTable')) {
+        $('#supportTicketsTable').DataTable().destroy();
+    }
+
+    // Initialize DataTable with proper configuration
+    var table = $('#supportTicketsTable').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-        }
+            "sProcessing": "جاري المعالجة...",
+            "sLengthMenu": "أظهر _MENU_ مدخلات",
+            "sZeroRecords": "لم يعثر على أية سجلات",
+            "sInfo": "إظهار _START_ إلى _END_ من أصل _TOTAL_ مدخل",
+            "sInfoEmpty": "يعرض 0 إلى 0 من أصل 0 سجل",
+            "sInfoFiltered": "(منتقاة من مجموع _MAX_ مُدخل)",
+            "sInfoPostFix": "",
+            "sSearch": "ابحث:",
+            "sUrl": "",
+            "oPaginate": {
+                "sFirst": "الأول",
+                "sPrevious": "السابق",
+                "sNext": "التالي",
+                "sLast": "الأخير"
+            }
+        },
+        responsive: true,
+        autoWidth: false,
+        destroy: true,
+        pageLength: 10,
+        columnDefs: [
+            {
+                targets: '_all',
+                defaultContent: ''
+            }
+        ]
     });
 
     // Add ticket form submission

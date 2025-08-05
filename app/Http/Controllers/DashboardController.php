@@ -22,6 +22,8 @@ class DashboardController extends Controller
         // Get filter parameters
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
 
         // Base queries with role-based filtering
         $customerQuery = $this->getFilteredCustomerQuery($user);
@@ -41,6 +43,17 @@ class DashboardController extends Controller
             $customerQuery->where('sub_department_id', $subDepartmentId);
         }
 
+        // Apply date filters
+        if ($startDate) {
+            $customerQuery->whereDate('created_at', '>=', $startDate);
+            $userQuery->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $customerQuery->whereDate('created_at', '<=', $endDate);
+            $userQuery->whereDate('created_at', '<=', $endDate);
+        }
+
         // Get counts
         $customerCount = $customerQuery->count();
         $userCount = $userQuery->count();
@@ -53,10 +66,10 @@ class DashboardController extends Controller
         $subDepartments = $subDepartmentId ? SubDepartment::where('department_id', $departmentId)->get() : collect();
 
         // Get customer status counts for reports
-        $customerStatusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
+        $customerStatusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId, $startDate, $endDate);
 
         // Get chart data
-        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId);
+        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId, $startDate, $endDate);
 
         return view('dashboard', compact(
             'customerCount',
@@ -69,7 +82,9 @@ class DashboardController extends Controller
             'customerStatusCounts',
             'chartData',
             'departmentId',
-            'subDepartmentId'
+            'subDepartmentId',
+            'startDate',
+            'endDate'
         ));
     }
 
@@ -113,7 +128,7 @@ class DashboardController extends Controller
         }
     }
 
-    private function getCustomerStatusCounts($user, $departmentId = null, $subDepartmentId = null)
+    private function getCustomerStatusCounts($user, $departmentId = null, $subDepartmentId = null, $startDate = null, $endDate = null)
     {
         // Start with a filtered query based on user role
         $query = $this->getFilteredCustomerQuery($user);
@@ -127,6 +142,15 @@ class DashboardController extends Controller
 
         if ($subDepartmentId) {
             $query->where('sub_department_id', $subDepartmentId);
+        }
+
+        // Apply date filters
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
         }
 
         // Get the base query for counting
@@ -144,7 +168,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getChartData($user, $departmentId = null, $subDepartmentId = null)
+    private function getChartData($user, $departmentId = null, $subDepartmentId = null, $startDate = null, $endDate = null)
     {
         // Get last 6 months
         $months = [];
@@ -152,6 +176,7 @@ class DashboardController extends Controller
         $userData = [];
         $departmentData = [];
         $subDepartmentData = [];
+        $notificationData = [];
 
         for ($i = 5; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
@@ -170,12 +195,26 @@ class DashboardController extends Controller
             if ($subDepartmentId) {
                 $customerQuery->where('sub_department_id', $subDepartmentId);
             }
+            // Apply date filters for chart data
+            if ($startDate) {
+                $customerQuery->whereDate('created_at', '>=', $startDate);
+            }
+            if ($endDate) {
+                $customerQuery->whereDate('created_at', '<=', $endDate);
+            }
             $customerData[] = $customerQuery->count();
 
             // User data with role-based filtering
             $userQuery = $this->getFilteredUserQuery($user)
                 ->whereYear('created_at', $date->year)
                 ->whereMonth('created_at', $date->month);
+            // Apply date filters for chart data
+            if ($startDate) {
+                $userQuery->whereDate('created_at', '>=', $startDate);
+            }
+            if ($endDate) {
+                $userQuery->whereDate('created_at', '<=', $endDate);
+            }
             $userData[] = $userQuery->count();
 
             // Department data
@@ -188,7 +227,26 @@ class DashboardController extends Controller
             if ($departmentId) {
                 $subDeptQuery->where('department_id', $departmentId);
             }
+            // Apply date filters for chart data
+            if ($startDate) {
+                $subDeptQuery->whereDate('created_at', '>=', $startDate);
+            }
+            if ($endDate) {
+                $subDeptQuery->whereDate('created_at', '<=', $endDate);
+            }
             $subDepartmentData[] = $subDeptQuery->count();
+
+            // Notification data (reminders)
+            $notificationQuery = Notification::whereYear('created_at', $date->year)
+                                           ->whereMonth('created_at', $date->month);
+            // Apply date filters for chart data
+            if ($startDate) {
+                $notificationQuery->whereDate('created_at', '>=', $startDate);
+            }
+            if ($endDate) {
+                $notificationQuery->whereDate('created_at', '<=', $endDate);
+            }
+            $notificationData[] = $notificationQuery->count();
         }
 
         return [
@@ -197,6 +255,7 @@ class DashboardController extends Controller
             'users' => $userData,
             'departments' => $departmentData,
             'sub_departments' => $subDepartmentData,
+            'notifications' => $notificationData,
         ];
     }
 
@@ -214,9 +273,11 @@ class DashboardController extends Controller
 
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
 
-        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId);
-        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
+        $chartData = $this->getChartData($user, $departmentId, $subDepartmentId, $startDate, $endDate);
+        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId, $startDate, $endDate);
 
         return response()->json([
             'chartData' => $chartData,
@@ -231,8 +292,10 @@ class DashboardController extends Controller
 
         $departmentId = $request->get('department_id');
         $subDepartmentId = $request->get('sub_department_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
 
-        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId);
+        $statusCounts = $this->getCustomerStatusCounts($user, $departmentId, $subDepartmentId, $startDate, $endDate);
 
         return response()->json($statusCounts);
     }

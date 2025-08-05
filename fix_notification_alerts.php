@@ -25,7 +25,6 @@ try {
     echo "👤 Test User: {$testUser->name} (ID: {$testUser->id})\n\n";
 
     // 3. Check for overdue notifications
-    echo "🔍 Checking for overdue notifications...\n";
     $overdueNotifications = Notification::where('remind_at', '<=', now())
         ->where('is_triggered', false)
         ->where('is_read', false)
